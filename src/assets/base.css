@@ -1,0 +1,131 @@
+.btn {
+  font-family: var(--font-ui);
+  font-size: 13px;
+  font-weight: 600;
+  padding: 9px 16px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--line-strong);
+  background: var(--bg-2);
+  color: var(--ink-0);
+  cursor: pointer;
+  transition: background 0.15s var(--ease), border-color 0.15s var(--ease), transform 0.1s var(--ease);
+}
+.btn:hover {
+  background: var(--bg-3);
+  border-color: var(--ink-2);
+}
+.btn:active {
+  transform: translateY(1px);
+}
+.btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+.btn-primary {
+  background: var(--ink-0);
+  color: var(--bg-0);
+  border-color: var(--ink-0);
+}
+.btn-primary:hover {
+  background: var(--ink-1);
+  border-color: var(--ink-1);
+}
+.btn-ghost {
+  background: transparent;
+  border-color: transparent;
+}
+.btn-ghost:hover {
+  background: var(--bg-2);
+  border-color: var(--line);
+}
+.btn-danger {
+  background: transparent;
+  border-color: var(--line-strong);
+  color: var(--ink-1);
+}
+.btn-danger:hover {
+  border-color: var(--ink-0);
+  color: var(--ink-0);
+}
+.btn-sm {
+  padding: 6px 11px;
+  font-size: 12px;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.field label {
+  font-size: 12px;
+  color: var(--ink-2);
+  letter-spacing: 0.01em;
+}
+.input {
+  font-family: var(--font-num);
+  font-size: 14px;
+  background: var(--bg-1);
+  border: 1px solid var(--line);
+  color: var(--ink-0);
+  padding: 9px 11px;
+  border-radius: var(--radius-sm);
+  transition: border-color 0.15s var(--ease);
+  width: 100%;
+}
+.input:focus {
+  border-color: var(--ink-2);
+  outline: none;
+}
+.input::placeholder {
+  color: var(--ink-3);
+  font-family: var(--font-ui);
+}
+
+.card {
+  background: var(--bg-1);
+  border: 1px solid var(--line-soft);
+  border-radius: var(--radius-md);
+}
+
+.panel-title {
+  font-size: 13px;
+  color: var(--ink-2);
+  font-weight: 600;
+  margin: 0 0 var(--space-3) 0;
+}
+
+.toast-stack {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  z-index: 200;
+}
+.toast {
+  background: var(--bg-3);
+  border: 1px solid var(--line-strong);
+  color: var(--ink-0);
+  padding: 11px 14px;
+  border-radius: var(--radius-sm);
+  font-size: 13px;
+  min-width: 220px;
+  max-width: 340px;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.4);
+  animation: toast-in 0.18s var(--ease);
+}
+.toast.error {
+  border-left: 2px solid var(--ink-0);
+}
+@keyframes toast-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
