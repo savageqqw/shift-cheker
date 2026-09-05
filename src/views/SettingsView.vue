@@ -7,6 +7,7 @@ const schedule = useScheduleStore();
 const workDays = ref(5);
 const restDays = ref(2);
 const anchorDate = ref('');
+const monthlyGoal = ref(200);
 const saving = ref(false);
 
 onMounted(async () => {
@@ -19,6 +20,7 @@ function syncFromStore() {
   workDays.value = schedule.settings.work_days;
   restDays.value = schedule.settings.rest_days;
   anchorDate.value = schedule.settings.anchor_date;
+  monthlyGoal.value = schedule.settings.monthly_hours_goal ?? 200;
 }
 
 watch(() => schedule.settings, syncFromStore);
@@ -29,7 +31,8 @@ async function save() {
     await schedule.updateSettings({
       work_days: Number(workDays.value),
       rest_days: Number(restDays.value),
-      anchor_date: anchorDate.value
+      anchor_date: anchorDate.value,
+      monthly_hours_goal: Number(monthlyGoal.value)
     });
   } finally {
     saving.value = false;
@@ -63,6 +66,18 @@ async function save() {
       </div>
 
       <button class="btn btn-primary" style="margin-top: var(--space-5)" :disabled="saving" @click="save">
+        Зберегти
+      </button>
+    </div>
+
+    <div class="card panel">
+      <p class="panel-title">Ціль по годинах</p>
+      <p class="panel-hint">Скільки годин на місяць — орієнтир для прогрес-бару на головній сторінці.</p>
+      <div class="field">
+        <label for="goal">Годин на місяць</label>
+        <input id="goal" class="input" type="number" min="1" step="1" v-model="monthlyGoal" />
+      </div>
+      <button class="btn btn-primary" style="margin-top: var(--space-4)" :disabled="saving" @click="save">
         Зберегти
       </button>
     </div>

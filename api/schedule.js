@@ -24,14 +24,15 @@ export default async function handler(req, res) {
     }
 
     if (req.method === 'POST' && action === 'update-settings') {
-      const { work_days, rest_days, anchor_date, timezone } = req.body || {};
+      const { work_days, rest_days, anchor_date, timezone, monthly_hours_goal } = req.body || {};
       if (!work_days || !rest_days || !anchor_date) {
         return res.status(400).json({ error: 'Заповніть усі поля циклу' });
       }
       const result = await db.execute({
-        sql: `UPDATE settings SET work_days = ?, rest_days = ?, anchor_date = ?, timezone = COALESCE(?, timezone)
+        sql: `UPDATE settings SET work_days = ?, rest_days = ?, anchor_date = ?, timezone = COALESCE(?, timezone),
+                     monthly_hours_goal = COALESCE(?, monthly_hours_goal)
               WHERE id = 1 RETURNING *`,
-        args: [work_days, rest_days, anchor_date, timezone || null]
+        args: [work_days, rest_days, anchor_date, timezone || null, monthly_hours_goal || null]
       });
       return res.status(200).json({ settings: result.rows[0] });
     }

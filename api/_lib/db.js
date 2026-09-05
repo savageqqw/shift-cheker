@@ -15,8 +15,8 @@ let migrated = null;
 export async function ensureSchema() {
   if (migrated) return migrated;
   const db = getDb();
-  migrated = db
-    .batch(
+  migrated = (async () => {
+    await db.batch(
       [
         `CREATE TABLE IF NOT EXISTS settings (
           id INTEGER PRIMARY KEY CHECK (id = 1),
@@ -45,7 +45,18 @@ export async function ensureSchema() {
          VALUES (1, 5, 2, date('now'), 'Europe/Kyiv')`
       ],
       'write'
-    )
-    .then(() => true);
+    );
+
+    // Schema evolution: add monthly_hours_goal for installs created before
+    // this column existed. Guarded by a column check since SQLite/libSQL
+    // has no "ADD COLUMN IF NOT EXISTS".
+    const cols = await db.execute('PRAGMA table_info(settings)');
+    const hasGoal = cols.rows.some((r) => r.name === 'monthly_hours_goal');
+    if (!hasGoal) {
+      await db.execute('ALTER TABLE settings ADD COLUMN monthly_hours_goal INTEGER NOT NULL DEFAULT 200');
+    }
+
+    return true;
+  })();
   return migrated;
 }

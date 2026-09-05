@@ -29,6 +29,22 @@ async function loadMonth() {
   await shifts.loadRange(from, to);
 }
 
+const monthlyGoal = computed(() => schedule.settings?.monthly_hours_goal ?? 200);
+
+const monthTotalHours = computed(() => {
+  const { from, to } = rangeBounds.value;
+  let sum = 0;
+  for (const [key, shift] of Object.entries(shifts.byDate)) {
+    if (key >= from && key <= to && shift.total_hours) sum += shift.total_hours;
+  }
+  return Math.round(sum * 100) / 100;
+});
+
+const goalProgressPct = computed(() => {
+  if (!monthlyGoal.value) return 0;
+  return Math.min(100, Math.round((monthTotalHours.value / monthlyGoal.value) * 1000) / 10);
+});
+
 onMounted(loadMonth);
 watch([viewYear, viewMonth], loadMonth);
 
@@ -57,7 +73,11 @@ function cellInfo(date) {
   const info = effectiveDayType(key, schedule.settings, schedule.overrides);
   const shift = shifts.byDate[key] || null;
   const isToday = key === dateKey(today);
-  return { key, ...info, shift, isToday };
+  const logged = !!(shift && shift.start_time && shift.end_time);
+  // Only a work day with hours actually logged turns green — a scheduled
+  // work day nobody confirmed yet stays neutral so nothing is promised in advance.
+  const status = info.type === 'work' ? (logged ? 'work' : 'unset') : info.type;
+  return { key, ...info, status, logged, shift, isToday };
 }
 
 function prevMonth() {
@@ -98,6 +118,16 @@ const weekdayLabels = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Нд'];
     <div v-if="!schedule.settings" class="empty-hint card">Завантаження графіка…</div>
 
     <template v-else>
+      <div class="goal-card card">
+        <div class="goal-top">
+          <span class="goal-label">Відпрацьовано за {{ monthLabel }}</span>
+          <span class="goal-value">{{ monthTotalHours }}<span class="goal-of">/ {{ monthlyGoal }} год</span></span>
+        </div>
+        <div class="goal-bar">
+          <div class="goal-bar-fill" :style="{ width: goalProgressPct + '%' }"></div>
+        </div>
+      </div>
+
       <div class="weekday-row">
         <span v-for="w in weekdayLabels" :key="w">{{ w }}</span>
       </div>
@@ -109,7 +139,7 @@ const weekdayLabels = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Нд'];
             :key="ci"
             class="cell"
             :class="[
-              date ? cellInfo(date).type : 'blank',
+              date ? cellInfo(date).status : 'blank',
               { today: date && cellInfo(date).isToday, overridden: date && cellInfo(date).overridden }
             ]"
             :disabled="!date"
@@ -128,9 +158,9 @@ const weekdayLabels = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Нд'];
       </div>
 
       <div class="legend">
-        <span><i class="swatch work"></i> робочий</span>
+        <span><i class="swatch work"></i> відпрацьовано (є години)</span>
         <span><i class="swatch rest"></i> вихідний</span>
-        <span><i class="swatch unset"></i> графік не встановлено</span>
+        <span><i class="swatch unset"></i> робочий, ще не внесено години</span>
         <span><i class="swatch marker">◇</i> заміна графіка</span>
       </div>
     </template>
@@ -162,6 +192,51 @@ const weekdayLabels = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Нд'];
   text-transform: capitalize;
   min-width: 160px;
   text-align: center;
+}
+
+.goal-card {
+  padding: var(--space-4) var(--space-5);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.goal-top {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-3);
+  flex-wrap: wrap;
+}
+.goal-label {
+  font-size: 13px;
+  color: var(--ink-2);
+  text-transform: capitalize;
+}
+.goal-value {
+  font-family: var(--font-num);
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--ink-0);
+  white-space: nowrap;
+}
+.goal-of {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--ink-2);
+  margin-left: 6px;
+}
+.goal-bar {
+  height: 8px;
+  border-radius: 5px;
+  background: var(--bg-2);
+  border: 1px solid var(--line);
+  overflow: hidden;
+}
+.goal-bar-fill {
+  height: 100%;
+  background: var(--state-work-border);
+  border-radius: 5px;
+  transition: width 0.3s var(--ease);
 }
 
 .weekday-row {
@@ -335,6 +410,12 @@ const weekdayLabels = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Нд'];
 }
 
 @media (max-width: 420px) {
+  .goal-card {
+    padding: var(--space-3) var(--space-4);
+  }
+  .goal-value {
+    font-size: 16px;
+  }
   .calendar-toolbar {
     flex-wrap: wrap;
     gap: var(--space-2);

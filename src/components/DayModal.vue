@@ -17,6 +17,13 @@ const base = computed(() => baseDayType(props.date, schedule.settings));
 const effectiveType = computed(() => effectiveDayType(props.date, schedule.settings, schedule.overrides).type);
 const isUnset = computed(() => effectiveType.value === 'unset');
 const shift = computed(() => shifts.byDate[props.date] || null);
+const isLogged = computed(() => !!(shift.value && shift.value.start_time && shift.value.end_time));
+// Same rule as the calendar grid: a scheduled work day only reads as
+// "confirmed" once hours are actually logged for it.
+const displayStatus = computed(() => {
+  if (effectiveType.value !== 'work') return effectiveType.value;
+  return isLogged.value ? 'work' : 'pending';
+});
 
 const overrideNote = ref(override.value?.note || '');
 const startTime = ref(shift.value?.start_time || '');
@@ -94,8 +101,14 @@ watch(
       <div class="modal-head">
         <div>
           <div class="modal-date">{{ prettyDate }}</div>
-          <div class="modal-type" :class="effectiveType">
-            {{ effectiveType === 'work' ? 'Робочий день' : effectiveType === 'rest' ? 'Вихідний' : 'Графік не встановлено' }}
+          <div class="modal-type" :class="displayStatus">
+            {{
+              effectiveType === 'work'
+                ? (isLogged ? 'Робочий день · відпрацьовано' : 'Робочий день · очікує годин')
+                : effectiveType === 'rest'
+                ? 'Вихідний'
+                : 'Графік не встановлено'
+            }}
             <span v-if="override" class="override-tag">заміна</span>
           </div>
         </div>
@@ -197,6 +210,7 @@ watch(
 .modal-type.rest {
   color: var(--state-rest-text);
 }
+.modal-type.pending,
 .modal-type.unset {
   color: var(--ink-2);
 }
