@@ -191,7 +191,10 @@ watch(
   gap: 6px;
 }
 .modal-type.work {
-  color: var(--ink-0);
+  color: var(--state-work-text);
+}
+.modal-type.rest {
+  color: var(--state-rest-text);
 }
 .override-tag {
   border: 1px dashed var(--line-strong);
@@ -228,5 +231,36 @@ watch(
   display: flex;
   gap: var(--space-2);
   margin-top: var(--space-4);
+}
+
+@media (max-width: 480px) {
+  .overlay {
+    align-items: flex-end;
+    padding: 0;
+  }
+  .modal {
+    max-width: 100%;
+    border-radius: var(--radius-md) var(--radius-md) 0 0;
+    max-height: 92vh;
+    padding: var(--space-4);
+  }
+  .time-row {
+    grid-template-columns: 1fr 1fr;
+    row-gap: var(--space-3);
+  }
+  .time-row .field:nth-child(3) {
+    grid-column: 1 / -1;
+  }
+  .hours-readout {
+    width: 100%;
+    text-align: center;
+  }
+  .swap-row {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .modal-actions {
+    flex-direction: column;
+  }
 }
 </style>

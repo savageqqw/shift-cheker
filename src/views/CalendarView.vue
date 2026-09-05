@@ -205,9 +205,14 @@ const weekdayLabels = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Нд'];
   cursor: default;
 }
 .cell.work {
-  background: var(--surface-work);
-  color: var(--ink-0);
-  border-color: var(--line);
+  background: var(--state-work-bg);
+  color: var(--state-work-text);
+  border-color: var(--state-work-border);
+}
+.cell.rest {
+  background: var(--state-rest-bg);
+  color: var(--state-rest-text);
+  border-color: var(--state-rest-border);
 }
 .cell.overridden {
   border-style: dashed;
@@ -220,22 +225,24 @@ const weekdayLabels = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Нд'];
 .cell-day {
   font-size: 13px;
   font-weight: 600;
+  color: var(--ink-0);
 }
 .cell-marker {
   position: absolute;
   top: 6px;
   right: 8px;
   font-size: 10px;
-  color: var(--ink-1);
+  color: var(--ink-0);
 }
 .cell-readout {
   font-size: 10.5px;
-  color: var(--ink-2);
+  color: inherit;
   display: flex;
   gap: 4px;
+  opacity: 0.85;
 }
 .cell.work .cell-readout {
-  color: var(--ink-1);
+  color: inherit;
 }
 
 .legend {
@@ -258,10 +265,12 @@ const weekdayLabels = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Нд'];
   border: 1px solid var(--line);
 }
 .swatch.work {
-  background: var(--surface-work);
+  background: var(--state-work-bg);
+  border-color: var(--state-work-border);
 }
 .swatch.rest {
-  background: var(--surface-rest);
+  background: var(--state-rest-bg);
+  border-color: var(--state-rest-border);
 }
 .swatch.marker {
   border: none;
@@ -278,11 +287,77 @@ const weekdayLabels = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Нд'];
 }
 
 @media (max-width: 640px) {
+  .grid,
+  .weekday-row {
+    gap: 4px;
+  }
+  .cell {
+    padding: 6px;
+    border-radius: 4px;
+  }
   .cell-day {
     font-size: 12px;
   }
   .cell-readout {
     font-size: 9px;
+    flex-direction: column;
+    gap: 0;
+    line-height: 1.25;
+  }
+  .cell-readout span:first-child::after {
+    content: '';
+  }
+  .legend {
+    gap: var(--space-3);
+    font-size: 11px;
+    flex-wrap: wrap;
+    row-gap: 6px;
+  }
+}
+
+@media (max-width: 420px) {
+  .calendar-toolbar {
+    flex-wrap: wrap;
+    gap: var(--space-2);
+  }
+  .month-nav {
+    order: 1;
+    width: 100%;
+    justify-content: space-between;
+  }
+  .month-label {
+    min-width: 0;
+    font-size: 14px;
+  }
+  .calendar-toolbar > .btn {
+    order: 2;
+  }
+  .weekday-row span {
+    font-size: 10px;
+  }
+  .cell {
+    padding: 4px 5px;
+  }
+  .cell-day {
+    font-size: 11px;
+  }
+  .cell-marker {
+    top: 4px;
+    right: 5px;
+    font-size: 9px;
+  }
+  .cell-readout {
+    font-size: 8px;
+  }
+}
+
+@media (max-width: 340px) {
+  .grid,
+  .weekday-row {
+    gap: 3px;
+  }
+  .cell {
+    padding: 3px 4px;
   }
 }
 </style>

@@ -120,4 +120,31 @@ const avgHours = computed(() => (stats.value ? Math.round(stats.value.avg_hours 
   color: var(--ink-2);
   margin-left: 6px;
 }
+
+@media (max-width: 480px) {
+  .period-tabs {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: var(--space-2);
+  }
+  .period-tabs .btn {
+    width: 100%;
+  }
+  .stat-grid {
+    grid-template-columns: 1fr 1fr;
+    gap: var(--space-2);
+  }
+  .stat {
+    padding: var(--space-3);
+  }
+  .stat-value {
+    font-size: 22px;
+  }
+}
+
+@media (max-width: 340px) {
+  .stat-grid {
+    grid-template-columns: 1fr;
+  }
+}
 </style>

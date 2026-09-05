@@ -145,9 +145,37 @@ function logout() {
     order: 3;
     width: 100%;
     gap: var(--space-4);
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  .shell-nav a {
+    white-space: nowrap;
   }
   .shell-main {
     padding: var(--space-4);
+  }
+}
+
+@media (max-width: 400px) {
+  .shell-header {
+    padding: 10px var(--space-3);
+    gap: var(--space-2);
+  }
+  .brand-name {
+    display: none;
+  }
+  .shell-readout {
+    padding: 5px 9px;
+    gap: 5px;
+  }
+  .readout-label {
+    display: none;
+  }
+  .logout-btn {
+    padding: 6px 9px;
+  }
+  .shell-main {
+    padding: var(--space-3);
   }
 }
 </style>

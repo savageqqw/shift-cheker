@@ -21,6 +21,14 @@
   --surface-rest: #0d0d0d;
   --surface-today-ring: #f2f2f0;
 
+  /* Shift status accent — the one deliberate spot of color in the app */
+  --state-work-bg: rgba(45, 165, 95, 0.16);
+  --state-work-border: rgba(60, 200, 115, 0.55);
+  --state-work-text: #8fe3ac;
+  --state-rest-bg: rgba(200, 60, 60, 0.14);
+  --state-rest-border: rgba(220, 80, 80, 0.5);
+  --state-rest-text: #f0a3a3;
+
   /* Type */
   --font-ui: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
   --font-num: 'JetBrains Mono', ui-monospace, SFMono-Regular, monospace;
@@ -53,8 +61,26 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
+html {
+  overflow-x: hidden;
+  width: 100%;
+}
+
 body {
   min-height: 100vh;
+  min-height: 100dvh;
+  overflow-x: hidden;
+  -webkit-tap-highlight-color: transparent;
+}
+
+#app {
+  min-height: 100vh;
+  min-height: 100dvh;
+}
+
+img,
+svg {
+  max-width: 100%;
 }
 
 ::selection {

@@ -90,4 +90,13 @@ async function save() {
   grid-template-columns: 1fr 1fr;
   gap: var(--space-3);
 }
+
+@media (max-width: 420px) {
+  .row {
+    grid-template-columns: 1fr;
+  }
+  .panel {
+    padding: var(--space-4);
+  }
+}
 </style>

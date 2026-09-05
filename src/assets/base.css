@@ -129,3 +129,27 @@
     transform: translateY(0);
   }
 }
+
+@media (max-width: 640px) {
+  /* 16px min prevents iOS Safari from auto-zooming in on focus */
+  .input {
+    font-size: 16px;
+    padding: 10px 12px;
+  }
+  .btn {
+    padding: 10px 16px;
+  }
+  .btn-sm {
+    padding: 8px 12px;
+  }
+  .toast-stack {
+    left: 12px;
+    right: 12px;
+    bottom: 12px;
+  }
+  .toast {
+    min-width: 0;
+    max-width: none;
+    width: 100%;
+  }
+}
