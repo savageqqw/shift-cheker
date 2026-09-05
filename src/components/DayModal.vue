@@ -2,7 +2,7 @@
 import { ref, computed, watch } from 'vue';
 import { useScheduleStore } from '../stores/schedule.js';
 import { useShiftsStore } from '../stores/shifts.js';
-import { baseDayType } from '../lib/scheduleEngine.js';
+import { baseDayType, effectiveDayType } from '../lib/scheduleEngine.js';
 
 const props = defineProps({
   date: { type: String, required: true }
@@ -14,7 +14,8 @@ const shifts = useShiftsStore();
 
 const override = computed(() => schedule.overrides[props.date] || null);
 const base = computed(() => baseDayType(props.date, schedule.settings));
-const effectiveType = computed(() => (override.value ? (override.value.is_working ? 'work' : 'rest') : base.value));
+const effectiveType = computed(() => effectiveDayType(props.date, schedule.settings, schedule.overrides).type);
+const isUnset = computed(() => effectiveType.value === 'unset');
 const shift = computed(() => shifts.byDate[props.date] || null);
 
 const overrideNote = ref(override.value?.note || '');
@@ -94,7 +95,7 @@ watch(
         <div>
           <div class="modal-date">{{ prettyDate }}</div>
           <div class="modal-type" :class="effectiveType">
-            {{ effectiveType === 'work' ? 'Робочий день' : 'Вихідний' }}
+            {{ effectiveType === 'work' ? 'Робочий день' : effectiveType === 'rest' ? 'Вихідний' : 'Графік не встановлено' }}
             <span v-if="override" class="override-tag">заміна</span>
           </div>
         </div>
@@ -195,6 +196,9 @@ watch(
 }
 .modal-type.rest {
   color: var(--state-rest-text);
+}
+.modal-type.unset {
+  color: var(--ink-2);
 }
 .override-tag {
   border: 1px dashed var(--line-strong);

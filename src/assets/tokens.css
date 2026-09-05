@@ -107,6 +107,8 @@ a {
 
 button {
   font-family: inherit;
+  appearance: none;
+  -webkit-appearance: none;
 }
 
 :focus-visible {

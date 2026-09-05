@@ -130,6 +130,7 @@ const weekdayLabels = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Нд'];
       <div class="legend">
         <span><i class="swatch work"></i> робочий</span>
         <span><i class="swatch rest"></i> вихідний</span>
+        <span><i class="swatch unset"></i> графік не встановлено</span>
         <span><i class="swatch marker">◇</i> заміна графіка</span>
       </div>
     </template>
@@ -167,7 +168,6 @@ const weekdayLabels = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Нд'];
   display: grid;
   grid-template-columns: repeat(7, 1fr);
   gap: 6px;
-  padding: 0 2px;
 }
 .weekday-row span {
   font-size: 11px;
@@ -182,6 +182,9 @@ const weekdayLabels = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Нд'];
 }
 
 .cell {
+  appearance: none;
+  -webkit-appearance: none;
+  width: 100%;
   aspect-ratio: 1 / 0.82;
   border-radius: var(--radius-sm);
   border: 1px solid var(--line-soft);
@@ -193,7 +196,9 @@ const weekdayLabels = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Нд'];
   align-items: flex-start;
   justify-content: space-between;
   padding: 8px;
+  font: inherit;
   font-family: var(--font-num);
+  text-align: left;
   position: relative;
   transition: border-color 0.15s var(--ease), background 0.15s var(--ease);
 }
@@ -213,6 +218,14 @@ const weekdayLabels = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Нд'];
   background: var(--state-rest-bg);
   color: var(--state-rest-text);
   border-color: var(--state-rest-border);
+}
+.cell.unset {
+  background: var(--bg-2);
+  color: var(--ink-2);
+  border-color: var(--line);
+}
+.cell.unset .cell-day {
+  color: var(--ink-1);
 }
 .cell.overridden {
   border-style: dashed;
@@ -247,10 +260,12 @@ const weekdayLabels = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Нд'];
 
 .legend {
   display: flex;
+  flex-wrap: wrap;
   gap: var(--space-5);
+  row-gap: 8px;
   font-size: 12px;
   color: var(--ink-2);
-  margin-top: var(--space-2);
+  margin-top: var(--space-3);
 }
 .legend span {
   display: flex;
@@ -271,6 +286,10 @@ const weekdayLabels = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Нд'];
 .swatch.rest {
   background: var(--state-rest-bg);
   border-color: var(--state-rest-border);
+}
+.swatch.unset {
+  background: var(--bg-2);
+  border-color: var(--line);
 }
 .swatch.marker {
   border: none;
