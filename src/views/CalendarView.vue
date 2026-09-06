@@ -134,7 +134,7 @@ const weekdayLabels = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Нд'];
 
       <div class="grid">
         <template v-for="(row, ri) in weeks" :key="ri">
-          <button
+          <div
             v-for="(date, ci) in row"
             :key="ci"
             class="cell"
@@ -142,8 +142,10 @@ const weekdayLabels = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Нд'];
               date ? cellInfo(date).status : 'blank',
               { today: date && cellInfo(date).isToday, overridden: date && cellInfo(date).overridden }
             ]"
-            :disabled="!date"
+            :role="date ? 'button' : undefined"
+            :tabindex="date ? 0 : -1"
             @click="date && (openDate = cellInfo(date).key)"
+            @keydown.enter="date && (openDate = cellInfo(date).key)"
           >
             <template v-if="date">
               <span class="cell-day">{{ date.getDate() }}</span>
@@ -153,7 +155,7 @@ const weekdayLabels = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Нд'];
                 <span v-if="cellInfo(date).shift.tradein_count">· {{ cellInfo(date).shift.tradein_count }}шт</span>
               </span>
             </template>
-          </button>
+          </div>
         </template>
       </div>
 
@@ -174,24 +176,30 @@ const weekdayLabels = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Нд'];
   display: flex;
   flex-direction: column;
   gap: var(--space-4);
+  width: 100%;
+  min-width: 0;
 }
 
 .calendar-toolbar {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
+  gap: var(--space-2);
+  min-width: 0;
 }
 .month-nav {
   display: flex;
   align-items: center;
   gap: var(--space-3);
+  min-width: 0;
 }
 .month-label {
   font-size: 16px;
   font-weight: 600;
   text-transform: capitalize;
-  min-width: 160px;
   text-align: center;
+  white-space: nowrap;
 }
 
 .goal-card {
@@ -243,23 +251,29 @@ const weekdayLabels = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Нд'];
   display: grid;
   grid-template-columns: repeat(7, 1fr);
   gap: 6px;
+  width: 100%;
+  min-width: 0;
 }
 .weekday-row span {
   font-size: 11px;
   color: var(--ink-3);
   text-align: center;
+  min-width: 0;
 }
 
 .grid {
   display: grid;
   grid-template-columns: repeat(7, 1fr);
   gap: 6px;
+  width: 100%;
+  min-width: 0;
 }
 
 .cell {
-  appearance: none;
-  -webkit-appearance: none;
   width: 100%;
+  min-width: 0;
+  overflow: hidden;
+  box-sizing: border-box;
   aspect-ratio: 1 / 0.82;
   border-radius: var(--radius-sm);
   border: 1px solid var(--line-soft);
@@ -275,7 +289,12 @@ const weekdayLabels = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Нд'];
   font-family: var(--font-num);
   text-align: left;
   position: relative;
+  user-select: none;
   transition: border-color 0.15s var(--ease), background 0.15s var(--ease);
+}
+.cell:focus-visible {
+  outline: 2px solid var(--ink-0);
+  outline-offset: 1px;
 }
 .cell:hover {
   border-color: var(--ink-2);
@@ -328,6 +347,13 @@ const weekdayLabels = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Нд'];
   display: flex;
   gap: 4px;
   opacity: 0.85;
+  min-width: 0;
+  max-width: 100%;
+  flex-wrap: wrap;
+}
+.cell-readout span {
+  min-width: 0;
+  overflow-wrap: anywhere;
 }
 .cell.work .cell-readout {
   color: inherit;
