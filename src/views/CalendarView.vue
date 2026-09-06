@@ -77,7 +77,13 @@ function cellInfo(date) {
   // Only a work day with hours actually logged turns green — a scheduled
   // work day nobody confirmed yet stays neutral so nothing is promised in advance.
   const status = info.type === 'work' ? (logged ? 'work' : 'unset') : info.type;
-  return { key, ...info, status, logged, shift, isToday };
+  let itemsValue = 0;
+  if (shift) {
+    itemsValue =
+      (shift.tradein_count || 0) * (schedule.settings.tradein_rate ?? 20) +
+      (shift.nova_poshta_count || 0) * (schedule.settings.nova_poshta_rate ?? 50);
+  }
+  return { key, ...info, status, logged, shift, itemsValue, isToday };
 }
 
 function prevMonth() {
@@ -152,7 +158,7 @@ const weekdayLabels = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Нд'];
               <span v-if="cellInfo(date).overridden" class="cell-marker" title="Заміна графіка">◇</span>
               <span v-if="cellInfo(date).shift" class="cell-readout">
                 <span v-if="cellInfo(date).shift.total_hours">{{ cellInfo(date).shift.total_hours }}г</span>
-                <span v-if="cellInfo(date).shift.tradein_count">· {{ cellInfo(date).shift.tradein_count }}шт</span>
+                <span v-if="cellInfo(date).itemsValue">· {{ cellInfo(date).itemsValue }}₴</span>
               </span>
             </template>
           </div>

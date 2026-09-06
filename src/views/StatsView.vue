@@ -75,8 +75,16 @@ const avgHours = computed(() => (stats.value ? Math.round(stats.value.avg_hours 
         <span class="stat-value">{{ avgHours }}<span class="stat-unit">год</span></span>
       </div>
       <div class="stat card">
-        <span class="stat-label">Опрацьовано трейд-ін</span>
+        <span class="stat-label">Трейд-ін</span>
         <span class="stat-value">{{ stats.total_tradein }}<span class="stat-unit">шт</span></span>
+      </div>
+      <div class="stat card">
+        <span class="stat-label">Трейд-ін Нова Пошта</span>
+        <span class="stat-value">{{ stats.total_nova_poshta }}<span class="stat-unit">шт</span></span>
+      </div>
+      <div class="stat card stat-value-card">
+        <span class="stat-label">Сума за товар</span>
+        <span class="stat-value">{{ stats.total_value }}<span class="stat-unit">₴</span></span>
       </div>
     </div>
   </div>
@@ -119,6 +127,9 @@ const avgHours = computed(() => (stats.value ? Math.round(stats.value.avg_hours 
   font-weight: 500;
   color: var(--ink-2);
   margin-left: 6px;
+}
+.stat-value-card .stat-value {
+  color: var(--state-work-text);
 }
 
 @media (max-width: 480px) {

@@ -8,6 +8,8 @@ const workDays = ref(5);
 const restDays = ref(2);
 const anchorDate = ref('');
 const monthlyGoal = ref(200);
+const tradeinRate = ref(20);
+const novaPoshtaRate = ref(50);
 const saving = ref(false);
 
 onMounted(async () => {
@@ -21,6 +23,8 @@ function syncFromStore() {
   restDays.value = schedule.settings.rest_days;
   anchorDate.value = schedule.settings.anchor_date;
   monthlyGoal.value = schedule.settings.monthly_hours_goal ?? 200;
+  tradeinRate.value = schedule.settings.tradein_rate ?? 20;
+  novaPoshtaRate.value = schedule.settings.nova_poshta_rate ?? 50;
 }
 
 watch(() => schedule.settings, syncFromStore);
@@ -32,7 +36,9 @@ async function save() {
       work_days: Number(workDays.value),
       rest_days: Number(restDays.value),
       anchor_date: anchorDate.value,
-      monthly_hours_goal: Number(monthlyGoal.value)
+      monthly_hours_goal: Number(monthlyGoal.value),
+      tradein_rate: Number(tradeinRate.value),
+      nova_poshta_rate: Number(novaPoshtaRate.value)
     });
   } finally {
     saving.value = false;
@@ -76,6 +82,24 @@ async function save() {
       <div class="field">
         <label for="goal">Годин на місяць</label>
         <input id="goal" class="input" type="number" min="1" step="1" v-model="monthlyGoal" />
+      </div>
+      <button class="btn btn-primary" style="margin-top: var(--space-4)" :disabled="saving" @click="save">
+        Зберегти
+      </button>
+    </div>
+
+    <div class="card panel">
+      <p class="panel-title">Оцінка товару</p>
+      <p class="panel-hint">Скільки коштує одна заявка кожного типу — використовується для розрахунку суми за зміну.</p>
+      <div class="row">
+        <div class="field">
+          <label for="tradein-rate">Трейд-ін, ₴/шт</label>
+          <input id="tradein-rate" class="input" type="number" min="0" step="0.01" v-model="tradeinRate" />
+        </div>
+        <div class="field">
+          <label for="nova-poshta-rate">Трейд-ін Нова Пошта, ₴/шт</label>
+          <input id="nova-poshta-rate" class="input" type="number" min="0" step="0.01" v-model="novaPoshtaRate" />
+        </div>
       </div>
       <button class="btn btn-primary" style="margin-top: var(--space-4)" :disabled="saving" @click="save">
         Зберегти

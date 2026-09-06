@@ -47,13 +47,25 @@ export async function ensureSchema() {
       'write'
     );
 
-    // Schema evolution: add monthly_hours_goal for installs created before
-    // this column existed. Guarded by a column check since SQLite/libSQL
-    // has no "ADD COLUMN IF NOT EXISTS".
-    const cols = await db.execute('PRAGMA table_info(settings)');
-    const hasGoal = cols.rows.some((r) => r.name === 'monthly_hours_goal');
-    if (!hasGoal) {
+    // Schema evolution: add columns for installs created before they existed.
+    // Guarded by a column check since SQLite/libSQL has no
+    // "ADD COLUMN IF NOT EXISTS".
+    const settingsCols = await db.execute('PRAGMA table_info(settings)');
+    const settingsColNames = settingsCols.rows.map((r) => r.name);
+    if (!settingsColNames.includes('monthly_hours_goal')) {
       await db.execute('ALTER TABLE settings ADD COLUMN monthly_hours_goal INTEGER NOT NULL DEFAULT 200');
+    }
+    if (!settingsColNames.includes('tradein_rate')) {
+      await db.execute('ALTER TABLE settings ADD COLUMN tradein_rate REAL NOT NULL DEFAULT 20');
+    }
+    if (!settingsColNames.includes('nova_poshta_rate')) {
+      await db.execute('ALTER TABLE settings ADD COLUMN nova_poshta_rate REAL NOT NULL DEFAULT 50');
+    }
+
+    const shiftsCols = await db.execute('PRAGMA table_info(shifts)');
+    const shiftsColNames = shiftsCols.rows.map((r) => r.name);
+    if (!shiftsColNames.includes('nova_poshta_count')) {
+      await db.execute('ALTER TABLE shifts ADD COLUMN nova_poshta_count INTEGER NOT NULL DEFAULT 0');
     }
 
     return true;

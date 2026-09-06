@@ -29,8 +29,15 @@ const overrideNote = ref(override.value?.note || '');
 const startTime = ref(shift.value?.start_time || '');
 const endTime = ref(shift.value?.end_time || '');
 const tradein = ref(shift.value?.tradein_count ?? 0);
+const novaPoshta = ref(shift.value?.nova_poshta_count ?? 0);
 const shiftNote = ref(shift.value?.note || '');
 const saving = ref(false);
+
+const tradeinRate = computed(() => schedule.settings?.tradein_rate ?? 20);
+const novaPoshtaRate = computed(() => schedule.settings?.nova_poshta_rate ?? 50);
+const tradeinValue = computed(() => (Number(tradein.value) || 0) * tradeinRate.value);
+const novaPoshtaValue = computed(() => (Number(novaPoshta.value) || 0) * novaPoshtaRate.value);
+const totalValue = computed(() => Math.round((tradeinValue.value + novaPoshtaValue.value) * 100) / 100);
 
 const prettyDate = computed(() => {
   const d = new Date(props.date + 'T00:00:00');
@@ -59,6 +66,7 @@ async function saveShift() {
       start_time: startTime.value || null,
       end_time: endTime.value || null,
       tradein_count: Number(tradein.value) || 0,
+      nova_poshta_count: Number(novaPoshta.value) || 0,
       note: shiftNote.value || null
     });
   } finally {
@@ -71,6 +79,7 @@ async function deleteShift() {
   startTime.value = '';
   endTime.value = '';
   tradein.value = 0;
+  novaPoshta.value = 0;
   shiftNote.value = '';
 }
 
@@ -90,6 +99,7 @@ watch(
     startTime.value = shift.value?.start_time || '';
     endTime.value = shift.value?.end_time || '';
     tradein.value = shift.value?.tradein_count ?? 0;
+    novaPoshta.value = shift.value?.nova_poshta_count ?? 0;
     shiftNote.value = shift.value?.note || '';
   }
 );
@@ -146,9 +156,18 @@ watch(
           </div>
         </div>
 
-        <div class="field" style="margin-top: var(--space-3)">
-          <label for="tradein">Опрацьовано товару (трейд-ін), шт.</label>
-          <input id="tradein" class="input" type="number" min="0" v-model="tradein" />
+        <div class="tradein-row">
+          <div class="field">
+            <label for="tradein">Трейд-ін, шт. <span class="rate-hint">({{ tradeinRate }}₴/шт)</span></label>
+            <input id="tradein" class="input" type="number" min="0" v-model="tradein" />
+          </div>
+          <div class="field">
+            <label for="nova-poshta">Трейд-ін Нова Пошта, шт. <span class="rate-hint">({{ novaPoshtaRate }}₴/шт)</span></label>
+            <input id="nova-poshta" class="input" type="number" min="0" v-model="novaPoshta" />
+          </div>
+        </div>
+        <div class="value-readout" v-if="tradein > 0 || novaPoshta > 0">
+          Разом за товар: <strong>{{ totalValue }}₴</strong>
         </div>
 
         <div class="field" style="margin-top: var(--space-3)">
@@ -244,6 +263,25 @@ watch(
   border: 1px solid var(--line);
   border-radius: var(--radius-sm);
   white-space: nowrap;
+}
+.tradein-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-3);
+  margin-top: var(--space-3);
+}
+.rate-hint {
+  color: var(--ink-3);
+  font-weight: 400;
+}
+.value-readout {
+  margin-top: var(--space-2);
+  font-size: 13px;
+  color: var(--ink-1);
+}
+.value-readout strong {
+  font-family: var(--font-num);
+  color: var(--state-work-text);
 }
 .modal-actions {
   display: flex;

@@ -28,32 +28,51 @@ export default async function handler(req, res) {
 
     if (req.method === 'GET' && action === 'stats') {
       const { from, to } = req.query;
-      const result = await db.execute({
-        sql: `SELECT COUNT(*) as shift_count, COALESCE(SUM(total_hours), 0) as total_hours,
-                     COALESCE(SUM(tradein_count), 0) as total_tradein,
-                     COALESCE(AVG(total_hours), 0) as avg_hours
-              FROM shifts WHERE date >= ? AND date <= ?`,
-        args: [from || '0000-01-01', to || '9999-12-31']
+      const [statsRes, ratesRes] = await Promise.all([
+        db.execute({
+          sql: `SELECT COUNT(*) as shift_count, COALESCE(SUM(total_hours), 0) as total_hours,
+                       COALESCE(SUM(tradein_count), 0) as total_tradein,
+                       COALESCE(SUM(nova_poshta_count), 0) as total_nova_poshta,
+                       COALESCE(AVG(total_hours), 0) as avg_hours
+                FROM shifts WHERE date >= ? AND date <= ?`,
+          args: [from || '0000-01-01', to || '9999-12-31']
+        }),
+        db.execute('SELECT tradein_rate, nova_poshta_rate FROM settings WHERE id = 1')
+      ]);
+      const stats = statsRes.rows[0];
+      const rates = ratesRes.rows[0] || { tradein_rate: 20, nova_poshta_rate: 50 };
+      const tradein_value = Math.round(stats.total_tradein * rates.tradein_rate * 100) / 100;
+      const nova_poshta_value = Math.round(stats.total_nova_poshta * rates.nova_poshta_rate * 100) / 100;
+      return res.status(200).json({
+        stats: { ...stats, tradein_value, nova_poshta_value, total_value: tradein_value + nova_poshta_value }
       });
-      return res.status(200).json({ stats: result.rows[0] });
     }
 
     if (req.method === 'POST' && action === 'upsert') {
-      const { date, start_time, end_time, tradein_count, note } = req.body || {};
+      const { date, start_time, end_time, tradein_count, nova_poshta_count, note } = req.body || {};
       if (!date) return res.status(400).json({ error: 'Дата обов’язкова' });
       const total_hours = computeHours(start_time, end_time);
       const result = await db.execute({
-        sql: `INSERT INTO shifts (date, start_time, end_time, total_hours, tradein_count, note, updated_at)
-              VALUES (?, ?, ?, ?, ?, ?, datetime('now'))
+        sql: `INSERT INTO shifts (date, start_time, end_time, total_hours, tradein_count, nova_poshta_count, note, updated_at)
+              VALUES (?, ?, ?, ?, ?, ?, ?, datetime('now'))
               ON CONFLICT(date) DO UPDATE SET
                 start_time = excluded.start_time,
                 end_time = excluded.end_time,
                 total_hours = excluded.total_hours,
                 tradein_count = excluded.tradein_count,
+                nova_poshta_count = excluded.nova_poshta_count,
                 note = excluded.note,
                 updated_at = datetime('now')
               RETURNING *`,
-        args: [date, start_time || null, end_time || null, total_hours, tradein_count || 0, note || null]
+        args: [
+          date,
+          start_time || null,
+          end_time || null,
+          total_hours,
+          tradein_count || 0,
+          nova_poshta_count || 0,
+          note || null
+        ]
       });
       return res.status(200).json({ shift: result.rows[0] });
     }
