@@ -18,18 +18,15 @@ export function baseDayType(dateStr, settings) {
 }
 
 /**
- * Returns { type: 'work'|'rest'|'unset', overridden: boolean, note } accounting
- * for manual per-day swaps (naparnyk coverage changes). Days before the anchor
- * date have no defined rotation yet, so they come back as 'unset' unless a
- * manual override was placed on them.
+ * Returns { type: 'work'|'rest', overridden: boolean, note } accounting
+ * for manual per-day swaps (naparnyk coverage changes). The rotation math
+ * works backward from the anchor date too, so days before the anchor still
+ * get a real work/rest color, not just the anchor date onward.
  */
 export function effectiveDayType(dateStr, settings, overridesByDate) {
   const override = overridesByDate[dateStr];
   if (override) {
     return { type: override.is_working ? 'work' : 'rest', overridden: true, note: override.note || '' };
-  }
-  if (settings && settings.anchor_date && dateStr < settings.anchor_date) {
-    return { type: 'unset', overridden: false, note: '' };
   }
   return { type: baseDayType(dateStr, settings), overridden: false, note: '' };
 }
