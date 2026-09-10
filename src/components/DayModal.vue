@@ -74,6 +74,30 @@ async function saveShift() {
   }
 }
 
+let autosaveTimer = null;
+function autosave() {
+  clearTimeout(autosaveTimer);
+  autosaveTimer = setTimeout(saveShift, 400);
+}
+
+function bump(field, delta) {
+  if (field === 'tradein') {
+    tradein.value = Math.max(0, (Number(tradein.value) || 0) + delta);
+  } else {
+    novaPoshta.value = Math.max(0, (Number(novaPoshta.value) || 0) + delta);
+  }
+  autosave();
+}
+
+function closeModal() {
+  if (autosaveTimer) {
+    clearTimeout(autosaveTimer);
+    autosaveTimer = null;
+    saveShift();
+  }
+  emit('close');
+}
+
 async function deleteShift() {
   await shifts.remove(props.date);
   startTime.value = '';
@@ -106,7 +130,7 @@ watch(
 </script>
 
 <template>
-  <div class="overlay" @click.self="emit('close')">
+  <div class="overlay" @click.self="closeModal">
     <div class="modal card">
       <div class="modal-head">
         <div>
@@ -122,7 +146,7 @@ watch(
             <span v-if="override" class="override-tag">заміна</span>
           </div>
         </div>
-        <button class="btn btn-ghost btn-sm" @click="emit('close')">Закрити</button>
+        <button class="btn btn-ghost btn-sm" @click="closeModal">Закрити</button>
       </div>
 
       <section class="modal-section">
@@ -158,16 +182,50 @@ watch(
 
         <div class="tradein-row">
           <div class="field">
-            <label for="tradein">Трейд-ін, шт. <span class="rate-hint">({{ tradeinRate }}₴/шт)</span></label>
-            <input id="tradein" class="input" type="number" min="0" v-model="tradein" />
+            <label for="tradein">Трейд-ін <span class="rate-hint">({{ tradeinRate }}₴/шт)</span></label>
+            <div class="counter">
+              <button type="button" class="counter-btn" @click="bump('tradein', -1)" aria-label="Мінус один">−</button>
+              <input
+                id="tradein"
+                class="input counter-input"
+                type="number"
+                min="0"
+                inputmode="numeric"
+                v-model="tradein"
+                @change="autosave"
+              />
+              <button type="button" class="counter-btn counter-btn-plus" @click="bump('tradein', 1)" aria-label="Плюс один">
+                +
+              </button>
+            </div>
           </div>
           <div class="field">
-            <label for="nova-poshta">Трейд-ін Нова Пошта, шт. <span class="rate-hint">({{ novaPoshtaRate }}₴/шт)</span></label>
-            <input id="nova-poshta" class="input" type="number" min="0" v-model="novaPoshta" />
+            <label for="nova-poshta">Трейд-ін Нова Пошта <span class="rate-hint">({{ novaPoshtaRate }}₴/шт)</span></label>
+            <div class="counter">
+              <button type="button" class="counter-btn" @click="bump('novaPoshta', -1)" aria-label="Мінус один">−</button>
+              <input
+                id="nova-poshta"
+                class="input counter-input"
+                type="number"
+                min="0"
+                inputmode="numeric"
+                v-model="novaPoshta"
+                @change="autosave"
+              />
+              <button
+                type="button"
+                class="counter-btn counter-btn-plus"
+                @click="bump('novaPoshta', 1)"
+                aria-label="Плюс один"
+              >
+                +
+              </button>
+            </div>
           </div>
         </div>
         <div class="value-readout" v-if="tradein > 0 || novaPoshta > 0">
           Разом за товар: <strong>{{ totalValue }}₴</strong>
+          <span v-if="saving" class="autosave-hint">· зберігаю…</span>
         </div>
 
         <div class="field" style="margin-top: var(--space-3)">
@@ -283,6 +341,65 @@ watch(
   font-family: var(--font-num);
   color: var(--state-work-text);
 }
+.autosave-hint {
+  color: var(--ink-3);
+  font-size: 12px;
+}
+.counter {
+  display: flex;
+  align-items: stretch;
+  gap: 6px;
+}
+.counter-btn {
+  flex: 0 0 44px;
+  width: 44px;
+  height: 44px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--line-strong);
+  background: var(--bg-2);
+  color: var(--ink-0);
+  font-size: 20px;
+  font-weight: 600;
+  line-height: 1;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.12s var(--ease), border-color 0.12s var(--ease), transform 0.08s var(--ease);
+}
+.counter-btn:active {
+  transform: scale(0.94);
+}
+.counter-btn:hover {
+  background: var(--bg-3);
+  border-color: var(--ink-2);
+}
+.counter-btn-plus {
+  background: var(--state-work-bg);
+  border-color: var(--state-work-border);
+  color: var(--state-work-text);
+}
+.counter-btn-plus:hover {
+  background: var(--state-work-border);
+  color: var(--bg-0);
+}
+.counter-input {
+  flex: 1;
+  min-width: 0;
+  text-align: center;
+  font-size: 18px;
+  font-weight: 700;
+  padding: 9px 4px;
+}
+/* Hide native number spinners — the +/- buttons replace them */
+.counter-input::-webkit-outer-spin-button,
+.counter-input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+.counter-input[type='number'] {
+  -moz-appearance: textfield;
+}
 .modal-actions {
   display: flex;
   gap: var(--space-2);
@@ -314,6 +431,9 @@ watch(
   .swap-row {
     flex-direction: column;
     align-items: stretch;
+  }
+  .tradein-row {
+    grid-template-columns: 1fr;
   }
   .modal-actions {
     flex-direction: column;

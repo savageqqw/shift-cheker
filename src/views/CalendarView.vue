@@ -78,13 +78,44 @@ function cellInfo(date) {
   // work day nobody confirmed yet stays neutral so nothing is promised in advance.
   const status = info.type === 'work' ? (logged ? 'work' : 'unset') : info.type;
   let itemsValue = 0;
+  let itemsCount = 0;
   if (shift) {
+    itemsCount = (shift.tradein_count || 0) + (shift.nova_poshta_count || 0);
     itemsValue =
       (shift.tradein_count || 0) * (schedule.settings.tradein_rate ?? 20) +
       (shift.nova_poshta_count || 0) * (schedule.settings.nova_poshta_rate ?? 50);
   }
-  return { key, ...info, status, logged, shift, itemsValue, isToday };
+  return { key, ...info, status, logged, shift, itemsCount, itemsValue, isToday };
 }
+
+// One totals summary per calendar row (week) — hours, item count and grn
+// value for just that week, shown as a strip under each row.
+const weekTotals = computed(() => {
+  return weeks.value.map((row) => {
+    let hours = 0;
+    let itemsCount = 0;
+    let value = 0;
+    let hasAnyShift = false;
+    row.forEach((date) => {
+      if (!date || !schedule.settings) return;
+      const key = dateKey(date);
+      const s = shifts.byDate[key];
+      if (!s) return;
+      hasAnyShift = true;
+      hours += s.total_hours || 0;
+      itemsCount += (s.tradein_count || 0) + (s.nova_poshta_count || 0);
+      value +=
+        (s.tradein_count || 0) * (schedule.settings.tradein_rate ?? 20) +
+        (s.nova_poshta_count || 0) * (schedule.settings.nova_poshta_rate ?? 50);
+    });
+    return {
+      hours: Math.round(hours * 100) / 100,
+      itemsCount,
+      value: Math.round(value * 100) / 100,
+      hasAnyShift
+    };
+  });
+});
 
 function prevMonth() {
   if (viewMonth.value === 0) {
@@ -158,9 +189,18 @@ const weekdayLabels = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Нд'];
               <span v-if="cellInfo(date).overridden" class="cell-marker" title="Заміна графіка">◇</span>
               <span v-if="cellInfo(date).shift" class="cell-readout">
                 <span v-if="cellInfo(date).shift.total_hours">{{ cellInfo(date).shift.total_hours }}г</span>
-                <span v-if="cellInfo(date).itemsValue">· {{ cellInfo(date).itemsValue }}₴</span>
+                <span v-if="cellInfo(date).itemsCount">{{ cellInfo(date).itemsCount }}шт</span>
+                <span v-if="cellInfo(date).itemsValue" class="cell-value">{{ cellInfo(date).itemsValue }}₴</span>
               </span>
             </template>
+          </div>
+          <div class="week-summary" :class="{ empty: !weekTotals[ri].hasAnyShift }">
+            <span class="week-summary-label">тиждень</span>
+            <span class="week-summary-values">
+              <span>{{ weekTotals[ri].hours }}г</span>
+              <span v-if="weekTotals[ri].itemsCount">· {{ weekTotals[ri].itemsCount }}шт</span>
+              <span v-if="weekTotals[ri].value" class="week-summary-value">· {{ weekTotals[ri].value }}₴</span>
+            </span>
           </div>
         </template>
       </div>
@@ -280,7 +320,7 @@ const weekdayLabels = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Нд'];
   min-width: 0;
   overflow: hidden;
   box-sizing: border-box;
-  aspect-ratio: 1 / 0.82;
+  aspect-ratio: 1 / 1;
   border-radius: var(--radius-sm);
   border: 1px solid var(--line-soft);
   background: var(--surface-rest);
@@ -351,18 +391,57 @@ const weekdayLabels = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Нд'];
   font-size: 10.5px;
   color: inherit;
   display: flex;
-  gap: 4px;
+  flex-direction: column;
+  gap: 1px;
   opacity: 0.85;
   min-width: 0;
   max-width: 100%;
-  flex-wrap: wrap;
+  line-height: 1.25;
 }
 .cell-readout span {
   min-width: 0;
   overflow-wrap: anywhere;
 }
+.cell-value {
+  font-weight: 700;
+  opacity: 1;
+}
 .cell.work .cell-readout {
   color: inherit;
+}
+
+.week-summary {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  padding: 5px 10px;
+  margin-top: -1px;
+  font-family: var(--font-num);
+  font-size: 11px;
+  color: var(--ink-2);
+}
+.week-summary-label {
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--ink-3);
+  font-family: var(--font-ui);
+  font-size: 10px;
+}
+.week-summary-values {
+  display: flex;
+  gap: 5px;
+  color: var(--ink-1);
+}
+.week-summary-value {
+  color: var(--state-work-text);
+  font-weight: 600;
+}
+.week-summary.empty {
+  opacity: 0.5;
+}
+.week-summary.empty .week-summary-value {
+  color: var(--ink-2);
 }
 
 .legend {
