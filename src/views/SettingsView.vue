@@ -10,6 +10,7 @@ const anchorDate = ref('');
 const monthlyGoal = ref(200);
 const tradeinRate = ref(20);
 const novaPoshtaRate = ref(50);
+const regularRate = ref(10);
 const saving = ref(false);
 
 onMounted(async () => {
@@ -25,6 +26,7 @@ function syncFromStore() {
   monthlyGoal.value = schedule.settings.monthly_hours_goal ?? 200;
   tradeinRate.value = schedule.settings.tradein_rate ?? 20;
   novaPoshtaRate.value = schedule.settings.nova_poshta_rate ?? 50;
+  regularRate.value = schedule.settings.regular_rate ?? 10;
 }
 
 watch(() => schedule.settings, syncFromStore);
@@ -38,7 +40,8 @@ async function save() {
       anchor_date: anchorDate.value,
       monthly_hours_goal: Number(monthlyGoal.value),
       tradein_rate: Number(tradeinRate.value),
-      nova_poshta_rate: Number(novaPoshtaRate.value)
+      nova_poshta_rate: Number(novaPoshtaRate.value),
+      regular_rate: Number(regularRate.value)
     });
   } finally {
     saving.value = false;
@@ -91,7 +94,7 @@ async function save() {
     <div class="card panel">
       <p class="panel-title">Оцінка товару</p>
       <p class="panel-hint">Скільки коштує одна заявка кожного типу — використовується для розрахунку суми за зміну.</p>
-      <div class="row">
+      <div class="row row-3">
         <div class="field">
           <label for="tradein-rate">Трейд-ін, ₴/шт</label>
           <input id="tradein-rate" class="input" type="number" min="0" step="0.01" v-model="tradeinRate" />
@@ -99,6 +102,10 @@ async function save() {
         <div class="field">
           <label for="nova-poshta-rate">Трейд-ін Нова Пошта, ₴/шт</label>
           <input id="nova-poshta-rate" class="input" type="number" min="0" step="0.01" v-model="novaPoshtaRate" />
+        </div>
+        <div class="field">
+          <label for="regular-rate">Заявки, ₴/шт</label>
+          <input id="regular-rate" class="input" type="number" min="0" step="0.01" v-model="regularRate" />
         </div>
       </div>
       <button class="btn btn-primary" style="margin-top: var(--space-4)" :disabled="saving" @click="save">
@@ -129,9 +136,13 @@ async function save() {
   grid-template-columns: 1fr 1fr;
   gap: var(--space-3);
 }
+.row-3 {
+  grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+}
 
 @media (max-width: 420px) {
-  .row {
+  .row,
+  .row-3 {
     grid-template-columns: 1fr;
   }
   .panel {

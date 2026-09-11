@@ -61,11 +61,17 @@ export async function ensureSchema() {
     if (!settingsColNames.includes('nova_poshta_rate')) {
       await db.execute('ALTER TABLE settings ADD COLUMN nova_poshta_rate REAL NOT NULL DEFAULT 50');
     }
+    if (!settingsColNames.includes('regular_rate')) {
+      await db.execute('ALTER TABLE settings ADD COLUMN regular_rate REAL NOT NULL DEFAULT 10');
+    }
 
     const shiftsCols = await db.execute('PRAGMA table_info(shifts)');
     const shiftsColNames = shiftsCols.rows.map((r) => r.name);
     if (!shiftsColNames.includes('nova_poshta_count')) {
       await db.execute('ALTER TABLE shifts ADD COLUMN nova_poshta_count INTEGER NOT NULL DEFAULT 0');
+    }
+    if (!shiftsColNames.includes('regular_count')) {
+      await db.execute('ALTER TABLE shifts ADD COLUMN regular_count INTEGER NOT NULL DEFAULT 0');
     }
 
     return true;

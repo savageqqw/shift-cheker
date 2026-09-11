@@ -30,14 +30,19 @@ const startTime = ref(shift.value?.start_time || '');
 const endTime = ref(shift.value?.end_time || '');
 const tradein = ref(shift.value?.tradein_count ?? 0);
 const novaPoshta = ref(shift.value?.nova_poshta_count ?? 0);
+const regular = ref(shift.value?.regular_count ?? 0);
 const shiftNote = ref(shift.value?.note || '');
 const saving = ref(false);
 
 const tradeinRate = computed(() => schedule.settings?.tradein_rate ?? 20);
 const novaPoshtaRate = computed(() => schedule.settings?.nova_poshta_rate ?? 50);
+const regularRate = computed(() => schedule.settings?.regular_rate ?? 10);
 const tradeinValue = computed(() => (Number(tradein.value) || 0) * tradeinRate.value);
 const novaPoshtaValue = computed(() => (Number(novaPoshta.value) || 0) * novaPoshtaRate.value);
-const totalValue = computed(() => Math.round((tradeinValue.value + novaPoshtaValue.value) * 100) / 100);
+const regularValue = computed(() => (Number(regular.value) || 0) * regularRate.value);
+const totalValue = computed(
+  () => Math.round((tradeinValue.value + novaPoshtaValue.value + regularValue.value) * 100) / 100
+);
 
 const prettyDate = computed(() => {
   const d = new Date(props.date + 'T00:00:00');
@@ -67,6 +72,7 @@ async function saveShift() {
       end_time: endTime.value || null,
       tradein_count: Number(tradein.value) || 0,
       nova_poshta_count: Number(novaPoshta.value) || 0,
+      regular_count: Number(regular.value) || 0,
       note: shiftNote.value || null
     });
   } finally {
@@ -80,12 +86,10 @@ function autosave() {
   autosaveTimer = setTimeout(saveShift, 400);
 }
 
+const countRefs = { tradein, novaPoshta, regular };
 function bump(field, delta) {
-  if (field === 'tradein') {
-    tradein.value = Math.max(0, (Number(tradein.value) || 0) + delta);
-  } else {
-    novaPoshta.value = Math.max(0, (Number(novaPoshta.value) || 0) + delta);
-  }
+  const target = countRefs[field];
+  target.value = Math.max(0, (Number(target.value) || 0) + delta);
   autosave();
 }
 
@@ -104,6 +108,7 @@ async function deleteShift() {
   endTime.value = '';
   tradein.value = 0;
   novaPoshta.value = 0;
+  regular.value = 0;
   shiftNote.value = '';
 }
 
@@ -124,6 +129,7 @@ watch(
     endTime.value = shift.value?.end_time || '';
     tradein.value = shift.value?.tradein_count ?? 0;
     novaPoshta.value = shift.value?.nova_poshta_count ?? 0;
+    regular.value = shift.value?.regular_count ?? 0;
     shiftNote.value = shift.value?.note || '';
   }
 );
@@ -222,8 +228,26 @@ watch(
               </button>
             </div>
           </div>
+          <div class="field">
+            <label for="regular">Заявки <span class="rate-hint">({{ regularRate }}₴/шт)</span></label>
+            <div class="counter">
+              <button type="button" class="counter-btn" @click="bump('regular', -1)" aria-label="Мінус один">−</button>
+              <input
+                id="regular"
+                class="input counter-input"
+                type="number"
+                min="0"
+                inputmode="numeric"
+                v-model="regular"
+                @change="autosave"
+              />
+              <button type="button" class="counter-btn counter-btn-plus" @click="bump('regular', 1)" aria-label="Плюс один">
+                +
+              </button>
+            </div>
+          </div>
         </div>
-        <div class="value-readout" v-if="tradein > 0 || novaPoshta > 0">
+        <div class="value-readout" v-if="tradein > 0 || novaPoshta > 0 || regular > 0">
           Разом за товар: <strong>{{ totalValue }}₴</strong>
           <span v-if="saving" class="autosave-hint">· зберігаю…</span>
         </div>
@@ -324,7 +348,7 @@ watch(
 }
 .tradein-row {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
   gap: var(--space-3);
   margin-top: var(--space-3);
 }

@@ -80,10 +80,11 @@ function cellInfo(date) {
   let itemsValue = 0;
   let itemsCount = 0;
   if (shift) {
-    itemsCount = (shift.tradein_count || 0) + (shift.nova_poshta_count || 0);
+    itemsCount = (shift.tradein_count || 0) + (shift.nova_poshta_count || 0) + (shift.regular_count || 0);
     itemsValue =
       (shift.tradein_count || 0) * (schedule.settings.tradein_rate ?? 20) +
-      (shift.nova_poshta_count || 0) * (schedule.settings.nova_poshta_rate ?? 50);
+      (shift.nova_poshta_count || 0) * (schedule.settings.nova_poshta_rate ?? 50) +
+      (shift.regular_count || 0) * (schedule.settings.regular_rate ?? 10);
   }
   return { key, ...info, status, logged, shift, itemsCount, itemsValue, isToday };
 }
@@ -103,10 +104,11 @@ const weekTotals = computed(() => {
       if (!s) return;
       hasAnyShift = true;
       hours += s.total_hours || 0;
-      itemsCount += (s.tradein_count || 0) + (s.nova_poshta_count || 0);
+      itemsCount += (s.tradein_count || 0) + (s.nova_poshta_count || 0) + (s.regular_count || 0);
       value +=
         (s.tradein_count || 0) * (schedule.settings.tradein_rate ?? 20) +
-        (s.nova_poshta_count || 0) * (schedule.settings.nova_poshta_rate ?? 50);
+        (s.nova_poshta_count || 0) * (schedule.settings.nova_poshta_rate ?? 50) +
+        (s.regular_count || 0) * (schedule.settings.regular_rate ?? 10);
     });
     return {
       hours: Math.round(hours * 100) / 100,
