@@ -91,12 +91,14 @@ function cellInfo(date) {
   return { key, ...info, status, logged, shift, itemsCount, payValue, isToday };
 }
 
-// One totals summary per calendar row (week) — hours, item count, item-only
-// grn value, and combined pay (hours + items) for just that week. Combined
-// pay powers the in-grid strip; hours/items/itemsValue power the stats panel.
+// One totals summary per calendar row (week) — hours, hours-only grn value,
+// item count, item-only grn value, and combined pay (hours + items) for
+// just that week. Combined pay powers the in-grid strip; the rest power
+// the stats panel.
 const weekTotals = computed(() => {
   return weeks.value.map((row) => {
     let hours = 0;
+    let hoursValue = 0;
     let itemsCount = 0;
     let itemsValue = 0;
     let value = 0;
@@ -108,16 +110,19 @@ const weekTotals = computed(() => {
       if (!s) return;
       hasAnyShift = true;
       hours += s.total_hours || 0;
+      const hoursPay = (s.total_hours || 0) * (schedule.settings.hourly_rate ?? 95);
+      hoursValue += hoursPay;
       itemsCount += (s.tradein_count || 0) + (s.nova_poshta_count || 0) + (s.regular_count || 0);
       const itemsPay =
         (s.tradein_count || 0) * (schedule.settings.tradein_rate ?? 20) +
         (s.nova_poshta_count || 0) * (schedule.settings.nova_poshta_rate ?? 50) +
         (s.regular_count || 0) * (schedule.settings.regular_rate ?? 10);
       itemsValue += itemsPay;
-      value += (s.total_hours || 0) * (schedule.settings.hourly_rate ?? 95) + itemsPay;
+      value += hoursPay + itemsPay;
     });
     return {
       hours: Math.round(hours * 100) / 100,
+      hoursValue: Math.round(hoursValue * 100) / 100,
       itemsCount,
       itemsValue: Math.round(itemsValue * 100) / 100,
       value: Math.round(value * 100) / 100,
@@ -143,10 +148,11 @@ const monthTotals = computed(() =>
   weekTotals.value.reduce(
     (acc, w) => ({
       hours: Math.round((acc.hours + w.hours) * 100) / 100,
+      hoursValue: Math.round((acc.hoursValue + w.hoursValue) * 100) / 100,
       itemsCount: acc.itemsCount + w.itemsCount,
       itemsValue: Math.round((acc.itemsValue + w.itemsValue) * 100) / 100
     }),
-    { hours: 0, itemsCount: 0, itemsValue: 0 }
+    { hours: 0, hoursValue: 0, itemsCount: 0, itemsValue: 0 }
   )
 );
 
@@ -176,97 +182,113 @@ const weekdayLabels = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Нд'];
 
 <template>
   <div class="calendar-page">
-    <div class="calendar-toolbar">
-      <div class="month-nav">
-        <button class="btn btn-ghost btn-sm" @click="prevMonth" aria-label="Попередній місяць">←</button>
-        <span class="month-label">{{ monthLabel }}</span>
-        <button class="btn btn-ghost btn-sm" @click="nextMonth" aria-label="Наступний місяць">→</button>
-      </div>
-      <button class="btn btn-sm" @click="goToday">Сьогодні</button>
-    </div>
-
-    <div v-if="!schedule.settings" class="empty-hint card">Завантаження графіка…</div>
-
-    <template v-else>
-      <div class="goal-card card">
-        <div class="goal-top">
-          <span class="goal-label">Відпрацьовано за {{ monthLabel }}</span>
-          <span class="goal-value">{{ monthTotalHours }}<span class="goal-of">/ {{ monthlyGoal }} год</span></span>
+    <div class="calendar-layout">
+      <div class="calendar-main">
+        <div class="calendar-toolbar">
+          <div class="month-nav">
+            <button class="btn btn-ghost btn-sm" @click="prevMonth" aria-label="Попередній місяць">←</button>
+            <span class="month-label">{{ monthLabel }}</span>
+            <button class="btn btn-ghost btn-sm" @click="nextMonth" aria-label="Наступний місяць">→</button>
+          </div>
+          <button class="btn btn-sm" @click="goToday">Сьогодні</button>
         </div>
-        <div class="goal-bar">
-          <div class="goal-bar-fill" :style="{ width: goalProgressPct + '%' }"></div>
-        </div>
-      </div>
 
-      <div class="weekday-row">
-        <span v-for="w in weekdayLabels" :key="w">{{ w }}</span>
-      </div>
+        <div v-if="!schedule.settings" class="empty-hint card">Завантаження графіка…</div>
 
-      <div class="grid">
-        <template v-for="(row, ri) in weeks" :key="ri">
-          <div
-            v-for="(date, ci) in row"
-            :key="ci"
-            class="cell"
-            :class="[
-              date ? cellInfo(date).status : 'blank',
-              { today: date && cellInfo(date).isToday, overridden: date && cellInfo(date).overridden }
-            ]"
-            :role="date ? 'button' : undefined"
-            :tabindex="date ? 0 : -1"
-            @click="date && (openDate = cellInfo(date).key)"
-            @keydown.enter="date && (openDate = cellInfo(date).key)"
-          >
-            <template v-if="date">
-              <span class="cell-day">{{ date.getDate() }}</span>
-              <span v-if="cellInfo(date).overridden" class="cell-marker" title="Заміна графіка">◇</span>
-              <span v-if="cellInfo(date).shift" class="cell-readout">
-                <span v-if="cellInfo(date).shift.total_hours">{{ cellInfo(date).shift.total_hours }}г</span>
-                <span v-if="cellInfo(date).itemsCount">{{ cellInfo(date).itemsCount }}шт</span>
-                <span v-if="cellInfo(date).payValue" class="cell-value">{{ cellInfo(date).payValue }}₴</span>
-              </span>
+        <template v-else>
+          <div class="goal-card card">
+            <div class="goal-top">
+              <span class="goal-label">Відпрацьовано за {{ monthLabel }}</span>
+              <span class="goal-value">{{ monthTotalHours }}<span class="goal-of">/ {{ monthlyGoal }} год</span></span>
+            </div>
+            <div class="goal-bar">
+              <div class="goal-bar-fill" :style="{ width: goalProgressPct + '%' }"></div>
+            </div>
+          </div>
+
+          <div class="weekday-row">
+            <span v-for="w in weekdayLabels" :key="w">{{ w }}</span>
+          </div>
+
+          <div class="grid">
+            <template v-for="(row, ri) in weeks" :key="ri">
+              <div
+                v-for="(date, ci) in row"
+                :key="ci"
+                class="cell"
+                :class="[
+                  date ? cellInfo(date).status : 'blank',
+                  { today: date && cellInfo(date).isToday, overridden: date && cellInfo(date).overridden }
+                ]"
+                :role="date ? 'button' : undefined"
+                :tabindex="date ? 0 : -1"
+                @click="date && (openDate = cellInfo(date).key)"
+                @keydown.enter="date && (openDate = cellInfo(date).key)"
+              >
+                <template v-if="date">
+                  <span class="cell-day">{{ date.getDate() }}</span>
+                  <span v-if="cellInfo(date).overridden" class="cell-marker" title="Заміна графіка">◇</span>
+                  <span v-if="cellInfo(date).shift" class="cell-readout">
+                    <span v-if="cellInfo(date).shift.total_hours">{{ cellInfo(date).shift.total_hours }}г</span>
+                    <span v-if="cellInfo(date).itemsCount">{{ cellInfo(date).itemsCount }}шт</span>
+                    <span v-if="cellInfo(date).payValue" class="cell-value">{{ cellInfo(date).payValue }}₴</span>
+                  </span>
+                </template>
+              </div>
+              <div class="week-summary" :class="{ empty: !weekTotals[ri].hasAnyShift }">
+                <span class="week-summary-label">тиждень</span>
+                <span class="week-summary-values">
+                  <span>{{ weekTotals[ri].hours }}г</span>
+                  <span v-if="weekTotals[ri].itemsCount">· {{ weekTotals[ri].itemsCount }}шт</span>
+                  <span v-if="weekTotals[ri].value" class="week-summary-value">· {{ weekTotals[ri].value }}₴</span>
+                </span>
+              </div>
             </template>
           </div>
-          <div class="week-summary" :class="{ empty: !weekTotals[ri].hasAnyShift }">
-            <span class="week-summary-label">тиждень</span>
-            <span class="week-summary-values">
-              <span>{{ weekTotals[ri].hours }}г</span>
-              <span v-if="weekTotals[ri].itemsCount">· {{ weekTotals[ri].itemsCount }}шт</span>
-              <span v-if="weekTotals[ri].value" class="week-summary-value">· {{ weekTotals[ri].value }}₴</span>
-            </span>
+
+          <div class="legend">
+            <span><i class="swatch work"></i> відпрацьовано (є години)</span>
+            <span><i class="swatch rest"></i> вихідний</span>
+            <span><i class="swatch unset"></i> робочий, ще не внесено години</span>
+            <span><i class="swatch marker">◇</i> заміна графіка</span>
           </div>
         </template>
       </div>
 
-      <div class="legend">
-        <span><i class="swatch work"></i> відпрацьовано (є години)</span>
-        <span><i class="swatch rest"></i> вихідний</span>
-        <span><i class="swatch unset"></i> робочий, ще не внесено години</span>
-        <span><i class="swatch marker">◇</i> заміна графіка</span>
-      </div>
+      <aside class="calendar-sidebar" v-if="schedule.settings">
+        <div class="stats-card card">
+          <p class="panel-title">Статистика за {{ monthLabel }}</p>
 
-      <div class="stats-card card">
-        <p class="panel-title">Статистика за {{ monthLabel }}</p>
-        <div class="stats-row stats-head">
-          <span>Тиждень</span>
-          <span>Години</span>
-          <span>Товар, шт</span>
-          <span>Товар, ₴</span>
+          <div class="stats-week" v-for="(w, i) in weekTotals" :key="i">
+            <div class="stats-week-header">Тиждень {{ weekRanges[i] }}</div>
+            <div class="stats-line">
+              <span>Години</span>
+              <span>{{ w.hours }}г <span class="stats-money">· {{ w.hoursValue }}₴</span></span>
+            </div>
+            <div class="stats-line">
+              <span>Товар</span>
+              <span>{{ w.itemsCount }}шт <span class="stats-money">· {{ w.itemsValue }}₴</span></span>
+            </div>
+          </div>
+
+          <div class="stats-week stats-total-block">
+            <div class="stats-week-header">Разом за місяць</div>
+            <div class="stats-line">
+              <span>Години</span>
+              <span>{{ monthTotals.hours }}г <span class="stats-money">· {{ monthTotals.hoursValue }}₴</span></span>
+            </div>
+            <div class="stats-line">
+              <span>Товар</span>
+              <span>{{ monthTotals.itemsCount }}шт <span class="stats-money">· {{ monthTotals.itemsValue }}₴</span></span>
+            </div>
+            <div class="stats-line stats-grand-total">
+              <span>Всього ₴</span>
+              <span>{{ Math.round((monthTotals.hoursValue + monthTotals.itemsValue) * 100) / 100 }}₴</span>
+            </div>
+          </div>
         </div>
-        <div class="stats-row" v-for="(w, i) in weekTotals" :key="i">
-          <span>{{ weekRanges[i] }}</span>
-          <span>{{ w.hours }}г</span>
-          <span>{{ w.itemsCount }}шт</span>
-          <span>{{ w.itemsValue }}₴</span>
-        </div>
-        <div class="stats-row stats-total">
-          <span>Разом за місяць</span>
-          <span>{{ monthTotals.hours }}г</span>
-          <span>{{ monthTotals.itemsCount }}шт</span>
-          <span>{{ monthTotals.itemsValue }}₴</span>
-        </div>
-      </div>
-    </template>
+      </aside>
+    </div>
 
     <DayModal v-if="openDate" :date="openDate" @close="openDate = null" />
   </div>
@@ -279,6 +301,42 @@ const weekdayLabels = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Нд'];
   gap: var(--space-4);
   width: 100%;
   min-width: 0;
+}
+
+.calendar-layout {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  width: 100%;
+  min-width: 0;
+}
+.calendar-main {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  min-width: 0;
+}
+.calendar-sidebar {
+  min-width: 0;
+}
+
+/* Sidebar sits to the LEFT on desktop, ahead of the calendar — DOM order
+   stays main-first so mobile still shows the calendar before the stats. */
+@media (min-width: 900px) {
+  .calendar-layout {
+    flex-direction: row;
+    align-items: flex-start;
+  }
+  .calendar-main {
+    flex: 1;
+    min-width: 0;
+  }
+  .calendar-sidebar {
+    order: -1;
+    flex: 0 0 280px;
+    position: sticky;
+    top: 88px;
+  }
 }
 
 .calendar-toolbar {
@@ -511,51 +569,60 @@ const weekdayLabels = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Нд'];
 
 .stats-card {
   padding: var(--space-4) var(--space-5);
-  margin-top: var(--space-2);
 }
-.stats-row {
-  display: grid;
-  grid-template-columns: 1.1fr 1fr 1fr 1fr;
-  gap: var(--space-2);
-  padding: 8px 2px;
+.stats-week {
+  padding: 10px 0;
   border-bottom: 1px solid var(--line-soft);
+}
+.stats-week:last-of-type {
+  border-bottom: none;
+}
+.stats-week-header {
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--ink-2);
+  margin-bottom: 6px;
+}
+.stats-line {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-2);
   font-family: var(--font-num);
   font-size: 12.5px;
-  color: var(--ink-1);
-}
-.stats-row:last-child {
-  border-bottom: none;
-}
-.stats-row span:first-child {
-  color: var(--ink-2);
-  font-family: var(--font-ui);
-}
-.stats-head {
-  font-family: var(--font-ui);
-  font-size: 10.5px;
-  text-transform: uppercase;
-  letter-spacing: 0.03em;
-  color: var(--ink-3);
-  border-bottom: 1px solid var(--line);
-  padding-bottom: 8px;
-}
-.stats-head span:first-child {
-  color: var(--ink-3);
-}
-.stats-total {
-  font-weight: 700;
   color: var(--ink-0);
+  padding: 2px 0;
+}
+.stats-line span:first-child {
+  font-family: var(--font-ui);
+  color: var(--ink-3);
+  white-space: nowrap;
+}
+.stats-money {
+  color: var(--ink-2);
+}
+.stats-total-block {
+  margin-top: 4px;
+  padding-top: 12px;
   border-top: 1px solid var(--line-strong);
   border-bottom: none;
-  margin-top: 2px;
-  padding-top: 10px;
 }
-.stats-total span:first-child {
+.stats-total-block .stats-week-header {
   color: var(--ink-0);
-  font-family: var(--font-ui);
+  font-size: 13px;
 }
-.stats-total span:last-child {
+.stats-grand-total {
+  margin-top: 4px;
+  padding-top: 6px;
+  border-top: 1px dashed var(--line);
+  font-weight: 700;
+}
+.stats-grand-total span:first-child {
+  color: var(--ink-0);
+}
+.stats-grand-total span:last-child {
   color: var(--state-work-text);
+  font-size: 14px;
 }
 .legend span {
   display: flex;
@@ -628,13 +695,11 @@ const weekdayLabels = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Нд'];
   .stats-card {
     padding: var(--space-3) var(--space-4);
   }
-  .stats-row {
-    grid-template-columns: 1fr 0.8fr 0.9fr 1fr;
-    font-size: 11px;
-    gap: 4px;
+  .stats-line {
+    font-size: 11.5px;
   }
-  .stats-head {
-    font-size: 9.5px;
+  .stats-week-header {
+    font-size: 10.5px;
   }
   .goal-card {
     padding: var(--space-3) var(--space-4);
