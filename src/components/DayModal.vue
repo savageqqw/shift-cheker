@@ -37,11 +37,14 @@ const saving = ref(false);
 const tradeinRate = computed(() => schedule.settings?.tradein_rate ?? 20);
 const novaPoshtaRate = computed(() => schedule.settings?.nova_poshta_rate ?? 50);
 const regularRate = computed(() => schedule.settings?.regular_rate ?? 10);
+const hourlyRate = computed(() => schedule.settings?.hourly_rate ?? 95);
 const tradeinValue = computed(() => (Number(tradein.value) || 0) * tradeinRate.value);
 const novaPoshtaValue = computed(() => (Number(novaPoshta.value) || 0) * novaPoshtaRate.value);
 const regularValue = computed(() => (Number(regular.value) || 0) * regularRate.value);
+const hoursValue = computed(() => (computedHours.value || 0) * hourlyRate.value);
 const totalValue = computed(
-  () => Math.round((tradeinValue.value + novaPoshtaValue.value + regularValue.value) * 100) / 100
+  () =>
+    Math.round((tradeinValue.value + novaPoshtaValue.value + regularValue.value + hoursValue.value) * 100) / 100
 );
 
 const prettyDate = computed(() => {
@@ -247,9 +250,15 @@ watch(
             </div>
           </div>
         </div>
-        <div class="value-readout" v-if="tradein > 0 || novaPoshta > 0 || regular > 0">
-          Разом за товар: <strong>{{ totalValue }}₴</strong>
+        <div class="value-readout" v-if="computedHours || tradein > 0 || novaPoshta > 0 || regular > 0">
+          Разом за зміну: <strong>{{ totalValue }}₴</strong>
           <span v-if="saving" class="autosave-hint">· зберігаю…</span>
+          <div class="value-breakdown">
+            <span v-if="computedHours">години: {{ hoursValue }}₴</span>
+            <span v-if="tradeinValue || novaPoshtaValue || regularValue">
+              · товар: {{ tradeinValue + novaPoshtaValue + regularValue }}₴
+            </span>
+          </div>
         </div>
 
         <div class="field" style="margin-top: var(--space-3)">
@@ -364,6 +373,12 @@ watch(
 .value-readout strong {
   font-family: var(--font-num);
   color: var(--state-work-text);
+}
+.value-breakdown {
+  margin-top: 3px;
+  font-size: 11.5px;
+  color: var(--ink-3);
+  font-family: var(--font-num);
 }
 .autosave-hint {
   color: var(--ink-3);

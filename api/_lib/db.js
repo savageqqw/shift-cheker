@@ -64,6 +64,9 @@ export async function ensureSchema() {
     if (!settingsColNames.includes('regular_rate')) {
       await db.execute('ALTER TABLE settings ADD COLUMN regular_rate REAL NOT NULL DEFAULT 10');
     }
+    if (!settingsColNames.includes('hourly_rate')) {
+      await db.execute('ALTER TABLE settings ADD COLUMN hourly_rate REAL NOT NULL DEFAULT 95');
+    }
 
     const shiftsCols = await db.execute('PRAGMA table_info(shifts)');
     const shiftsColNames = shiftsCols.rows.map((r) => r.name);

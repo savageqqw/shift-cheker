@@ -11,6 +11,7 @@ const monthlyGoal = ref(200);
 const tradeinRate = ref(20);
 const novaPoshtaRate = ref(50);
 const regularRate = ref(10);
+const hourlyRate = ref(95);
 const saving = ref(false);
 
 onMounted(async () => {
@@ -27,6 +28,7 @@ function syncFromStore() {
   tradeinRate.value = schedule.settings.tradein_rate ?? 20;
   novaPoshtaRate.value = schedule.settings.nova_poshta_rate ?? 50;
   regularRate.value = schedule.settings.regular_rate ?? 10;
+  hourlyRate.value = schedule.settings.hourly_rate ?? 95;
 }
 
 watch(() => schedule.settings, syncFromStore);
@@ -41,7 +43,8 @@ async function save() {
       monthly_hours_goal: Number(monthlyGoal.value),
       tradein_rate: Number(tradeinRate.value),
       nova_poshta_rate: Number(novaPoshtaRate.value),
-      regular_rate: Number(regularRate.value)
+      regular_rate: Number(regularRate.value),
+      hourly_rate: Number(hourlyRate.value)
     });
   } finally {
     saving.value = false;
@@ -85,6 +88,18 @@ async function save() {
       <div class="field">
         <label for="goal">Годин на місяць</label>
         <input id="goal" class="input" type="number" min="1" step="1" v-model="monthlyGoal" />
+      </div>
+      <button class="btn btn-primary" style="margin-top: var(--space-4)" :disabled="saving" @click="save">
+        Зберегти
+      </button>
+    </div>
+
+    <div class="card panel">
+      <p class="panel-title">Оплата за години</p>
+      <p class="panel-hint">Ставка за годину роботи — використовується для розрахунку заробітку за зміну.</p>
+      <div class="field">
+        <label for="hourly-rate">Грн/год</label>
+        <input id="hourly-rate" class="input" type="number" min="0" step="0.01" v-model="hourlyRate" />
       </div>
       <button class="btn btn-primary" style="margin-top: var(--space-4)" :disabled="saving" @click="save">
         Зберегти

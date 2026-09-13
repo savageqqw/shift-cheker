@@ -77,20 +77,23 @@ function cellInfo(date) {
   // Only a work day with hours actually logged turns green — a scheduled
   // work day nobody confirmed yet stays neutral so nothing is promised in advance.
   const status = info.type === 'work' ? (logged ? 'work' : 'unset') : info.type;
-  let itemsValue = 0;
   let itemsCount = 0;
+  let payValue = 0;
   if (shift) {
     itemsCount = (shift.tradein_count || 0) + (shift.nova_poshta_count || 0) + (shift.regular_count || 0);
-    itemsValue =
+    payValue =
+      (shift.total_hours || 0) * (schedule.settings.hourly_rate ?? 95) +
       (shift.tradein_count || 0) * (schedule.settings.tradein_rate ?? 20) +
       (shift.nova_poshta_count || 0) * (schedule.settings.nova_poshta_rate ?? 50) +
       (shift.regular_count || 0) * (schedule.settings.regular_rate ?? 10);
+    payValue = Math.round(payValue * 100) / 100;
   }
-  return { key, ...info, status, logged, shift, itemsCount, itemsValue, isToday };
+  return { key, ...info, status, logged, shift, itemsCount, payValue, isToday };
 }
 
 // One totals summary per calendar row (week) — hours, item count and grn
-// value for just that week, shown as a strip under each row.
+// value (hours pay + item pay) for just that week, shown as a strip under
+// each row.
 const weekTotals = computed(() => {
   return weeks.value.map((row) => {
     let hours = 0;
@@ -106,6 +109,7 @@ const weekTotals = computed(() => {
       hours += s.total_hours || 0;
       itemsCount += (s.tradein_count || 0) + (s.nova_poshta_count || 0) + (s.regular_count || 0);
       value +=
+        (s.total_hours || 0) * (schedule.settings.hourly_rate ?? 95) +
         (s.tradein_count || 0) * (schedule.settings.tradein_rate ?? 20) +
         (s.nova_poshta_count || 0) * (schedule.settings.nova_poshta_rate ?? 50) +
         (s.regular_count || 0) * (schedule.settings.regular_rate ?? 10);
@@ -192,7 +196,7 @@ const weekdayLabels = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Нд'];
               <span v-if="cellInfo(date).shift" class="cell-readout">
                 <span v-if="cellInfo(date).shift.total_hours">{{ cellInfo(date).shift.total_hours }}г</span>
                 <span v-if="cellInfo(date).itemsCount">{{ cellInfo(date).itemsCount }}шт</span>
-                <span v-if="cellInfo(date).itemsValue" class="cell-value">{{ cellInfo(date).itemsValue }}₴</span>
+                <span v-if="cellInfo(date).payValue" class="cell-value">{{ cellInfo(date).payValue }}₴</span>
               </span>
             </template>
           </div>

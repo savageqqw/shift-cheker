@@ -38,20 +38,22 @@ export default async function handler(req, res) {
                 FROM shifts WHERE date >= ? AND date <= ?`,
           args: [from || '0000-01-01', to || '9999-12-31']
         }),
-        db.execute('SELECT tradein_rate, nova_poshta_rate, regular_rate FROM settings WHERE id = 1')
+        db.execute('SELECT tradein_rate, nova_poshta_rate, regular_rate, hourly_rate FROM settings WHERE id = 1')
       ]);
       const stats = statsRes.rows[0];
-      const rates = ratesRes.rows[0] || { tradein_rate: 20, nova_poshta_rate: 50, regular_rate: 10 };
+      const rates = ratesRes.rows[0] || { tradein_rate: 20, nova_poshta_rate: 50, regular_rate: 10, hourly_rate: 95 };
       const tradein_value = Math.round(stats.total_tradein * rates.tradein_rate * 100) / 100;
       const nova_poshta_value = Math.round(stats.total_nova_poshta * rates.nova_poshta_rate * 100) / 100;
       const regular_value = Math.round(stats.total_regular * rates.regular_rate * 100) / 100;
+      const hours_value = Math.round(stats.total_hours * rates.hourly_rate * 100) / 100;
       return res.status(200).json({
         stats: {
           ...stats,
           tradein_value,
           nova_poshta_value,
           regular_value,
-          total_value: tradein_value + nova_poshta_value + regular_value
+          hours_value,
+          total_value: tradein_value + nova_poshta_value + regular_value + hours_value
         }
       });
     }
