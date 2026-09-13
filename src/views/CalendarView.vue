@@ -91,13 +91,14 @@ function cellInfo(date) {
   return { key, ...info, status, logged, shift, itemsCount, payValue, isToday };
 }
 
-// One totals summary per calendar row (week) — hours, item count and grn
-// value (hours pay + item pay) for just that week, shown as a strip under
-// each row.
+// One totals summary per calendar row (week) — hours, item count, item-only
+// grn value, and combined pay (hours + items) for just that week. Combined
+// pay powers the in-grid strip; hours/items/itemsValue power the stats panel.
 const weekTotals = computed(() => {
   return weeks.value.map((row) => {
     let hours = 0;
     let itemsCount = 0;
+    let itemsValue = 0;
     let value = 0;
     let hasAnyShift = false;
     row.forEach((date) => {
@@ -108,20 +109,46 @@ const weekTotals = computed(() => {
       hasAnyShift = true;
       hours += s.total_hours || 0;
       itemsCount += (s.tradein_count || 0) + (s.nova_poshta_count || 0) + (s.regular_count || 0);
-      value +=
-        (s.total_hours || 0) * (schedule.settings.hourly_rate ?? 95) +
+      const itemsPay =
         (s.tradein_count || 0) * (schedule.settings.tradein_rate ?? 20) +
         (s.nova_poshta_count || 0) * (schedule.settings.nova_poshta_rate ?? 50) +
         (s.regular_count || 0) * (schedule.settings.regular_rate ?? 10);
+      itemsValue += itemsPay;
+      value += (s.total_hours || 0) * (schedule.settings.hourly_rate ?? 95) + itemsPay;
     });
     return {
       hours: Math.round(hours * 100) / 100,
       itemsCount,
+      itemsValue: Math.round(itemsValue * 100) / 100,
       value: Math.round(value * 100) / 100,
       hasAnyShift
     };
   });
 });
+
+// "1–7", "8–14" style label for each calendar row, used in the stats panel
+const weekRanges = computed(() => {
+  return weeks.value.map((row) => {
+    const dates = row.filter((d) => d);
+    if (!dates.length) return '';
+    const first = dates[0].getDate();
+    const last = dates[dates.length - 1].getDate();
+    return first === last ? `${first}` : `${first}–${last}`;
+  });
+});
+
+// Month-wide totals — same numbers as summing every week row, kept as a
+// single computed so the "Разом за місяць" line doesn't drift from the table.
+const monthTotals = computed(() =>
+  weekTotals.value.reduce(
+    (acc, w) => ({
+      hours: Math.round((acc.hours + w.hours) * 100) / 100,
+      itemsCount: acc.itemsCount + w.itemsCount,
+      itemsValue: Math.round((acc.itemsValue + w.itemsValue) * 100) / 100
+    }),
+    { hours: 0, itemsCount: 0, itemsValue: 0 }
+  )
+);
 
 function prevMonth() {
   if (viewMonth.value === 0) {
@@ -216,6 +243,28 @@ const weekdayLabels = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Нд'];
         <span><i class="swatch rest"></i> вихідний</span>
         <span><i class="swatch unset"></i> робочий, ще не внесено години</span>
         <span><i class="swatch marker">◇</i> заміна графіка</span>
+      </div>
+
+      <div class="stats-card card">
+        <p class="panel-title">Статистика за {{ monthLabel }}</p>
+        <div class="stats-row stats-head">
+          <span>Тиждень</span>
+          <span>Години</span>
+          <span>Товар, шт</span>
+          <span>Товар, ₴</span>
+        </div>
+        <div class="stats-row" v-for="(w, i) in weekTotals" :key="i">
+          <span>{{ weekRanges[i] }}</span>
+          <span>{{ w.hours }}г</span>
+          <span>{{ w.itemsCount }}шт</span>
+          <span>{{ w.itemsValue }}₴</span>
+        </div>
+        <div class="stats-row stats-total">
+          <span>Разом за місяць</span>
+          <span>{{ monthTotals.hours }}г</span>
+          <span>{{ monthTotals.itemsCount }}шт</span>
+          <span>{{ monthTotals.itemsValue }}₴</span>
+        </div>
       </div>
     </template>
 
@@ -459,6 +508,55 @@ const weekdayLabels = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Нд'];
   color: var(--ink-2);
   margin-top: var(--space-3);
 }
+
+.stats-card {
+  padding: var(--space-4) var(--space-5);
+  margin-top: var(--space-2);
+}
+.stats-row {
+  display: grid;
+  grid-template-columns: 1.1fr 1fr 1fr 1fr;
+  gap: var(--space-2);
+  padding: 8px 2px;
+  border-bottom: 1px solid var(--line-soft);
+  font-family: var(--font-num);
+  font-size: 12.5px;
+  color: var(--ink-1);
+}
+.stats-row:last-child {
+  border-bottom: none;
+}
+.stats-row span:first-child {
+  color: var(--ink-2);
+  font-family: var(--font-ui);
+}
+.stats-head {
+  font-family: var(--font-ui);
+  font-size: 10.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--ink-3);
+  border-bottom: 1px solid var(--line);
+  padding-bottom: 8px;
+}
+.stats-head span:first-child {
+  color: var(--ink-3);
+}
+.stats-total {
+  font-weight: 700;
+  color: var(--ink-0);
+  border-top: 1px solid var(--line-strong);
+  border-bottom: none;
+  margin-top: 2px;
+  padding-top: 10px;
+}
+.stats-total span:first-child {
+  color: var(--ink-0);
+  font-family: var(--font-ui);
+}
+.stats-total span:last-child {
+  color: var(--state-work-text);
+}
 .legend span {
   display: flex;
   align-items: center;
@@ -527,6 +625,17 @@ const weekdayLabels = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Нд'];
 }
 
 @media (max-width: 420px) {
+  .stats-card {
+    padding: var(--space-3) var(--space-4);
+  }
+  .stats-row {
+    grid-template-columns: 1fr 0.8fr 0.9fr 1fr;
+    font-size: 11px;
+    gap: 4px;
+  }
+  .stats-head {
+    font-size: 9.5px;
+  }
   .goal-card {
     padding: var(--space-3) var(--space-4);
   }
