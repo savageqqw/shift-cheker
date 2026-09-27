@@ -91,16 +91,21 @@ function cellInfo(date) {
   return { key, ...info, status, logged, shift, itemsCount, payValue, isToday };
 }
 
-// One totals summary per calendar row (week) — hours, hours-only grn value,
-// item count, item-only grn value, and combined pay (hours + items) for
-// just that week. Combined pay powers the in-grid strip; the rest power
+// One totals summary per calendar row (week) — hours + hours-only grn value,
+// plus a per-type breakdown (trade-in / Nova Poshta / regular applications)
+// with count and grn value for each, and combined pay (hours + all items)
+// for just that week. Combined pay powers the in-grid strip; the rest power
 // the stats panel.
 const weekTotals = computed(() => {
   return weeks.value.map((row) => {
     let hours = 0;
     let hoursValue = 0;
-    let itemsCount = 0;
-    let itemsValue = 0;
+    let tradeinCount = 0;
+    let tradeinValue = 0;
+    let novaPoshtaCount = 0;
+    let novaPoshtaValue = 0;
+    let regularCount = 0;
+    let regularValue = 0;
     let value = 0;
     let hasAnyShift = false;
     row.forEach((date) => {
@@ -112,17 +117,29 @@ const weekTotals = computed(() => {
       hours += s.total_hours || 0;
       const hoursPay = (s.total_hours || 0) * (schedule.settings.hourly_rate ?? 95);
       hoursValue += hoursPay;
-      itemsCount += (s.tradein_count || 0) + (s.nova_poshta_count || 0) + (s.regular_count || 0);
+      tradeinCount += s.tradein_count || 0;
+      tradeinValue += (s.tradein_count || 0) * (schedule.settings.tradein_rate ?? 20);
+      novaPoshtaCount += s.nova_poshta_count || 0;
+      novaPoshtaValue += (s.nova_poshta_count || 0) * (schedule.settings.nova_poshta_rate ?? 50);
+      regularCount += s.regular_count || 0;
+      regularValue += (s.regular_count || 0) * (schedule.settings.regular_rate ?? 10);
       const itemsPay =
         (s.tradein_count || 0) * (schedule.settings.tradein_rate ?? 20) +
         (s.nova_poshta_count || 0) * (schedule.settings.nova_poshta_rate ?? 50) +
         (s.regular_count || 0) * (schedule.settings.regular_rate ?? 10);
-      itemsValue += itemsPay;
       value += hoursPay + itemsPay;
     });
+    const itemsCount = tradeinCount + novaPoshtaCount + regularCount;
+    const itemsValue = tradeinValue + novaPoshtaValue + regularValue;
     return {
       hours: Math.round(hours * 100) / 100,
       hoursValue: Math.round(hoursValue * 100) / 100,
+      tradeinCount,
+      tradeinValue: Math.round(tradeinValue * 100) / 100,
+      novaPoshtaCount,
+      novaPoshtaValue: Math.round(novaPoshtaValue * 100) / 100,
+      regularCount,
+      regularValue: Math.round(regularValue * 100) / 100,
       itemsCount,
       itemsValue: Math.round(itemsValue * 100) / 100,
       value: Math.round(value * 100) / 100,
@@ -149,10 +166,27 @@ const monthTotals = computed(() =>
     (acc, w) => ({
       hours: Math.round((acc.hours + w.hours) * 100) / 100,
       hoursValue: Math.round((acc.hoursValue + w.hoursValue) * 100) / 100,
+      tradeinCount: acc.tradeinCount + w.tradeinCount,
+      tradeinValue: Math.round((acc.tradeinValue + w.tradeinValue) * 100) / 100,
+      novaPoshtaCount: acc.novaPoshtaCount + w.novaPoshtaCount,
+      novaPoshtaValue: Math.round((acc.novaPoshtaValue + w.novaPoshtaValue) * 100) / 100,
+      regularCount: acc.regularCount + w.regularCount,
+      regularValue: Math.round((acc.regularValue + w.regularValue) * 100) / 100,
       itemsCount: acc.itemsCount + w.itemsCount,
       itemsValue: Math.round((acc.itemsValue + w.itemsValue) * 100) / 100
     }),
-    { hours: 0, hoursValue: 0, itemsCount: 0, itemsValue: 0 }
+    {
+      hours: 0,
+      hoursValue: 0,
+      tradeinCount: 0,
+      tradeinValue: 0,
+      novaPoshtaCount: 0,
+      novaPoshtaValue: 0,
+      regularCount: 0,
+      regularValue: 0,
+      itemsCount: 0,
+      itemsValue: 0
+    }
   )
 );
 
@@ -266,8 +300,16 @@ const weekdayLabels = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Нд'];
               <span>{{ w.hours }}г <span class="stats-money">· {{ w.hoursValue }}₴</span></span>
             </div>
             <div class="stats-line">
-              <span>Товар</span>
-              <span>{{ w.itemsCount }}шт <span class="stats-money">· {{ w.itemsValue }}₴</span></span>
+              <span>Трейд-ін</span>
+              <span>{{ w.tradeinCount }}шт <span class="stats-money">· {{ w.tradeinValue }}₴</span></span>
+            </div>
+            <div class="stats-line">
+              <span>Нова Пошта</span>
+              <span>{{ w.novaPoshtaCount }}шт <span class="stats-money">· {{ w.novaPoshtaValue }}₴</span></span>
+            </div>
+            <div class="stats-line">
+              <span>Заявки</span>
+              <span>{{ w.regularCount }}шт <span class="stats-money">· {{ w.regularValue }}₴</span></span>
             </div>
           </div>
 
@@ -278,8 +320,16 @@ const weekdayLabels = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Нд'];
               <span>{{ monthTotals.hours }}г <span class="stats-money">· {{ monthTotals.hoursValue }}₴</span></span>
             </div>
             <div class="stats-line">
-              <span>Товар</span>
-              <span>{{ monthTotals.itemsCount }}шт <span class="stats-money">· {{ monthTotals.itemsValue }}₴</span></span>
+              <span>Трейд-ін</span>
+              <span>{{ monthTotals.tradeinCount }}шт <span class="stats-money">· {{ monthTotals.tradeinValue }}₴</span></span>
+            </div>
+            <div class="stats-line">
+              <span>Нова Пошта</span>
+              <span>{{ monthTotals.novaPoshtaCount }}шт <span class="stats-money">· {{ monthTotals.novaPoshtaValue }}₴</span></span>
+            </div>
+            <div class="stats-line">
+              <span>Заявки</span>
+              <span>{{ monthTotals.regularCount }}шт <span class="stats-money">· {{ monthTotals.regularValue }}₴</span></span>
             </div>
             <div class="stats-line stats-grand-total">
               <span>Всього ₴</span>
