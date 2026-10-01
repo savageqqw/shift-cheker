@@ -67,6 +67,11 @@ export async function ensureSchema() {
     if (!settingsColNames.includes('hourly_rate')) {
       await db.execute('ALTER TABLE settings ADD COLUMN hourly_rate REAL NOT NULL DEFAULT 95');
     }
+    // Fixed weekly days off ("0,1" = неділя + понеділок) replace the old
+    // N-on/M-off rotation; work_days/rest_days/anchor_date stay unused.
+    if (!settingsColNames.includes('rest_weekdays')) {
+      await db.execute("ALTER TABLE settings ADD COLUMN rest_weekdays TEXT NOT NULL DEFAULT '0,1'");
+    }
 
     const shiftsCols = await db.execute('PRAGMA table_info(shifts)');
     const shiftsColNames = shiftsCols.rows.map((r) => r.name);

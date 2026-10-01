@@ -2,19 +2,22 @@
 import { ref, computed, onMounted, watch } from 'vue';
 import { useScheduleStore } from '../stores/schedule.js';
 import { useShiftsStore } from '../stores/shifts.js';
-import { effectiveDayType, dateKey } from '../lib/scheduleEngine.js';
+import { effectiveDayType, dateKey, restDaysLabel, WEEKDAYS } from '../lib/scheduleEngine.js';
 import DayModal from '../components/DayModal.vue';
 
 const schedule = useScheduleStore();
 const shifts = useShiftsStore();
 
 const today = new Date();
+const todayKey = dateKey(today);
 const viewYear = ref(today.getFullYear());
 const viewMonth = ref(today.getMonth()); // 0-based
 const openDate = ref(null);
+const isCurrentMonth = computed(() => viewYear.value === today.getFullYear() && viewMonth.value === today.getMonth());
 
-const monthLabel = computed(() =>
-  new Date(viewYear.value, viewMonth.value, 1).toLocaleDateString('uk-UA', { month: 'long', year: 'numeric' })
+// month-only format gives the nominative "жовтень" and avoids the trailing "р."
+const monthLabel = computed(
+  () => `${new Date(viewYear.value, viewMonth.value, 1).toLocaleDateString('uk-UA', { month: 'long' })} ${viewYear.value}`
 );
 
 const rangeBounds = computed(() => {
@@ -31,48 +34,22 @@ async function loadMonth() {
 
 const monthlyGoal = computed(() => schedule.settings?.monthly_hours_goal ?? 200);
 
-const monthTotalHours = computed(() => {
-  const { from, to } = rangeBounds.value;
-  let sum = 0;
-  for (const [key, shift] of Object.entries(shifts.byDate)) {
-    if (key >= from && key <= to && shift.total_hours) sum += shift.total_hours;
-  }
-  return Math.round(sum * 100) / 100;
-});
-
-const goalProgressPct = computed(() => {
-  if (!monthlyGoal.value) return 0;
-  return Math.min(100, Math.round((monthTotalHours.value / monthlyGoal.value) * 1000) / 10);
-});
-
 onMounted(loadMonth);
 watch([viewYear, viewMonth], loadMonth);
 
-const weeks = computed(() => {
-  const first = new Date(viewYear.value, viewMonth.value, 1);
-  const daysInMonth = new Date(viewYear.value, viewMonth.value + 1, 0).getDate();
-  // Monday-first week
-  const leadingBlank = (first.getDay() + 6) % 7;
+const rates = computed(() => ({
+  hourly: schedule.settings?.hourly_rate ?? 95,
+  tradein: schedule.settings?.tradein_rate ?? 20,
+  novaPoshta: schedule.settings?.nova_poshta_rate ?? 50,
+  regular: schedule.settings?.regular_rate ?? 10
+}));
 
-  const cells = [];
-  for (let i = 0; i < leadingBlank; i++) cells.push(null);
-  for (let d = 1; d <= daysInMonth; d++) {
-    const date = new Date(viewYear.value, viewMonth.value, d);
-    cells.push(date);
-  }
-  while (cells.length % 7 !== 0) cells.push(null);
-
-  const rows = [];
-  for (let i = 0; i < cells.length; i += 7) rows.push(cells.slice(i, i + 7));
-  return rows;
-});
+const round2 = (n) => Math.round(n * 100) / 100;
 
 function cellInfo(date) {
-  if (!date || !schedule.settings) return null;
   const key = dateKey(date);
   const info = effectiveDayType(key, schedule.settings, schedule.overrides);
   const shift = shifts.byDate[key] || null;
-  const isToday = key === dateKey(today);
   const logged = !!(shift && shift.start_time && shift.end_time);
   // Only a work day with hours actually logged turns green — a scheduled
   // work day nobody confirmed yet stays neutral so nothing is promised in advance.
@@ -80,262 +57,272 @@ function cellInfo(date) {
   let itemsCount = 0;
   let payValue = 0;
   if (shift) {
+    const r = rates.value;
     itemsCount = (shift.tradein_count || 0) + (shift.nova_poshta_count || 0) + (shift.regular_count || 0);
-    payValue =
-      (shift.total_hours || 0) * (schedule.settings.hourly_rate ?? 95) +
-      (shift.tradein_count || 0) * (schedule.settings.tradein_rate ?? 20) +
-      (shift.nova_poshta_count || 0) * (schedule.settings.nova_poshta_rate ?? 50) +
-      (shift.regular_count || 0) * (schedule.settings.regular_rate ?? 10);
-    payValue = Math.round(payValue * 100) / 100;
+    payValue = round2(
+      (shift.total_hours || 0) * r.hourly +
+        (shift.tradein_count || 0) * r.tradein +
+        (shift.nova_poshta_count || 0) * r.novaPoshta +
+        (shift.regular_count || 0) * r.regular
+    );
   }
-  return { key, ...info, status, logged, shift, itemsCount, payValue, isToday };
+  return {
+    key,
+    day: date.getDate(),
+    ...info,
+    status,
+    logged,
+    shift,
+    itemsCount,
+    payValue,
+    isToday: key === todayKey,
+    isPast: key < todayKey
+  };
 }
 
-// One totals summary per calendar row (week) — hours + hours-only grn value,
-// plus a per-type breakdown (trade-in / Nova Poshta / regular applications)
-// with count and grn value for each, and combined pay (hours + all items)
-// for just that week. Combined pay powers the in-grid strip; the rest power
-// the stats panel.
-const weekTotals = computed(() => {
-  return weeks.value.map((row) => {
-    let hours = 0;
-    let hoursValue = 0;
-    let tradeinCount = 0;
-    let tradeinValue = 0;
-    let novaPoshtaCount = 0;
-    let novaPoshtaValue = 0;
-    let regularCount = 0;
-    let regularValue = 0;
-    let value = 0;
-    let hasAnyShift = false;
-    row.forEach((date) => {
-      if (!date || !schedule.settings) return;
-      const key = dateKey(date);
-      const s = shifts.byDate[key];
-      if (!s) return;
-      hasAnyShift = true;
-      hours += s.total_hours || 0;
-      const hoursPay = (s.total_hours || 0) * (schedule.settings.hourly_rate ?? 95);
-      hoursValue += hoursPay;
-      tradeinCount += s.tradein_count || 0;
-      tradeinValue += (s.tradein_count || 0) * (schedule.settings.tradein_rate ?? 20);
-      novaPoshtaCount += s.nova_poshta_count || 0;
-      novaPoshtaValue += (s.nova_poshta_count || 0) * (schedule.settings.nova_poshta_rate ?? 50);
-      regularCount += s.regular_count || 0;
-      regularValue += (s.regular_count || 0) * (schedule.settings.regular_rate ?? 10);
-      const itemsPay =
-        (s.tradein_count || 0) * (schedule.settings.tradein_rate ?? 20) +
-        (s.nova_poshta_count || 0) * (schedule.settings.nova_poshta_rate ?? 50) +
-        (s.regular_count || 0) * (schedule.settings.regular_rate ?? 10);
-      value += hoursPay + itemsPay;
-    });
-    const itemsCount = tradeinCount + novaPoshtaCount + regularCount;
-    const itemsValue = tradeinValue + novaPoshtaValue + regularValue;
-    return {
-      hours: Math.round(hours * 100) / 100,
-      hoursValue: Math.round(hoursValue * 100) / 100,
-      tradeinCount,
-      tradeinValue: Math.round(tradeinValue * 100) / 100,
-      novaPoshtaCount,
-      novaPoshtaValue: Math.round(novaPoshtaValue * 100) / 100,
-      regularCount,
-      regularValue: Math.round(regularValue * 100) / 100,
-      itemsCount,
-      itemsValue: Math.round(itemsValue * 100) / 100,
-      value: Math.round(value * 100) / 100,
-      hasAnyShift
-    };
-  });
+// Calendar rows (Monday-first), each cell resolved once per render.
+const weeks = computed(() => {
+  if (!schedule.settings) return [];
+  const first = new Date(viewYear.value, viewMonth.value, 1);
+  const daysInMonth = new Date(viewYear.value, viewMonth.value + 1, 0).getDate();
+  const leadingBlank = (first.getDay() + 6) % 7;
+
+  const cells = [];
+  for (let i = 0; i < leadingBlank; i++) cells.push(null);
+  for (let d = 1; d <= daysInMonth; d++) cells.push(cellInfo(new Date(viewYear.value, viewMonth.value, d)));
+  while (cells.length % 7 !== 0) cells.push(null);
+
+  const rows = [];
+  for (let i = 0; i < cells.length; i += 7) rows.push(cells.slice(i, i + 7));
+  return rows;
 });
 
-// "1–7", "8–14" style label for each calendar row, used in the stats panel
-const weekRanges = computed(() => {
-  return weeks.value.map((row) => {
-    const dates = row.filter((d) => d);
-    if (!dates.length) return '';
-    const first = dates[0].getDate();
-    const last = dates[dates.length - 1].getDate();
-    return first === last ? `${first}` : `${first}–${last}`;
-  });
-});
-
-// Month-wide totals — same numbers as summing every week row, kept as a
-// single computed so the "Разом за місяць" line doesn't drift from the table.
-const monthTotals = computed(() =>
-  weekTotals.value.reduce(
-    (acc, w) => ({
-      hours: Math.round((acc.hours + w.hours) * 100) / 100,
-      hoursValue: Math.round((acc.hoursValue + w.hoursValue) * 100) / 100,
-      tradeinCount: acc.tradeinCount + w.tradeinCount,
-      tradeinValue: Math.round((acc.tradeinValue + w.tradeinValue) * 100) / 100,
-      novaPoshtaCount: acc.novaPoshtaCount + w.novaPoshtaCount,
-      novaPoshtaValue: Math.round((acc.novaPoshtaValue + w.novaPoshtaValue) * 100) / 100,
-      regularCount: acc.regularCount + w.regularCount,
-      regularValue: Math.round((acc.regularValue + w.regularValue) * 100) / 100,
-      itemsCount: acc.itemsCount + w.itemsCount,
-      itemsValue: Math.round((acc.itemsValue + w.itemsValue) * 100) / 100
-    }),
-    {
+// Per-row totals with a per-type breakdown (trade-in / Nova Poshta / regular).
+const weekTotals = computed(() =>
+  weeks.value.map((row) => {
+    const r = rates.value;
+    const t = {
       hours: 0,
-      hoursValue: 0,
       tradeinCount: 0,
-      tradeinValue: 0,
       novaPoshtaCount: 0,
-      novaPoshtaValue: 0,
       regularCount: 0,
-      regularValue: 0,
-      itemsCount: 0,
-      itemsValue: 0
-    }
-  )
+      hasAnyShift: false
+    };
+    row.forEach((c) => {
+      if (!c || !c.shift) return;
+      const s = c.shift;
+      t.hasAnyShift = true;
+      t.hours += s.total_hours || 0;
+      t.tradeinCount += s.tradein_count || 0;
+      t.novaPoshtaCount += s.nova_poshta_count || 0;
+      t.regularCount += s.regular_count || 0;
+    });
+    const days = row.filter(Boolean);
+    const hoursValue = t.hours * r.hourly;
+    const tradeinValue = t.tradeinCount * r.tradein;
+    const novaPoshtaValue = t.novaPoshtaCount * r.novaPoshta;
+    const regularValue = t.regularCount * r.regular;
+    return {
+      ...t,
+      hours: round2(t.hours),
+      hoursValue: round2(hoursValue),
+      tradeinValue: round2(tradeinValue),
+      novaPoshtaValue: round2(novaPoshtaValue),
+      regularValue: round2(regularValue),
+      itemsCount: t.tradeinCount + t.novaPoshtaCount + t.regularCount,
+      itemsValue: round2(tradeinValue + novaPoshtaValue + regularValue),
+      value: round2(hoursValue + tradeinValue + novaPoshtaValue + regularValue),
+      range: days.length ? (days.length === 1 ? `${days[0].day}` : `${days[0].day}–${days[days.length - 1].day}`) : ''
+    };
+  })
 );
 
-function prevMonth() {
-  if (viewMonth.value === 0) {
-    viewMonth.value = 11;
-    viewYear.value -= 1;
-  } else {
-    viewMonth.value -= 1;
-  }
-}
-function nextMonth() {
-  if (viewMonth.value === 11) {
-    viewMonth.value = 0;
-    viewYear.value += 1;
-  } else {
-    viewMonth.value += 1;
-  }
+const monthTotals = computed(() => {
+  const keys = ['hours', 'hoursValue', 'tradeinCount', 'tradeinValue', 'novaPoshtaCount', 'novaPoshtaValue',
+    'regularCount', 'regularValue', 'itemsCount', 'itemsValue', 'value'];
+  const acc = Object.fromEntries(keys.map((k) => [k, 0]));
+  weekTotals.value.forEach((w) => keys.forEach((k) => (acc[k] = round2(acc[k] + w[k]))));
+  return acc;
+});
+
+const goalProgressPct = computed(() => {
+  if (!monthlyGoal.value) return 0;
+  return Math.min(100, Math.round((monthTotals.value.hours / monthlyGoal.value) * 1000) / 10);
+});
+
+// Work days left in the month from today on (inclusive), for the hint under the goal bar.
+const workDaysLeft = computed(() => {
+  let n = 0;
+  weeks.value.forEach((row) =>
+    row.forEach((c) => {
+      if (c && c.type === 'work' && !c.isPast && !c.logged) n++;
+    })
+  );
+  return n;
+});
+
+function shiftMonth(delta) {
+  const d = new Date(viewYear.value, viewMonth.value + delta, 1);
+  viewYear.value = d.getFullYear();
+  viewMonth.value = d.getMonth();
 }
 function goToday() {
   viewYear.value = today.getFullYear();
   viewMonth.value = today.getMonth();
 }
 
-const weekdayLabels = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Нд'];
+// Horizontal swipe on the grid flips months on touch screens.
+let touchX = null;
+let touchY = null;
+function onTouchStart(e) {
+  touchX = e.touches[0].clientX;
+  touchY = e.touches[0].clientY;
+}
+function onTouchEnd(e) {
+  if (touchX === null) return;
+  const dx = e.changedTouches[0].clientX - touchX;
+  const dy = e.changedTouches[0].clientY - touchY;
+  touchX = null;
+  if (Math.abs(dx) > 60 && Math.abs(dx) > Math.abs(dy) * 1.5) shiftMonth(dx < 0 ? 1 : -1);
+}
+
+const fmt = (n) => (Number.isInteger(n) ? String(n) : n.toFixed(2).replace(/\.?0+$/, ''));
+const money = (n) => Math.round(n).toLocaleString('uk-UA');
 </script>
 
 <template>
   <div class="calendar-page">
-    <div class="calendar-layout">
+    <div class="calendar-toolbar">
+      <button class="btn btn-ghost btn-icon" @click="shiftMonth(-1)" aria-label="Попередній місяць">‹</button>
+      <div class="month-label">{{ monthLabel }}</div>
+      <button class="btn btn-ghost btn-icon" @click="shiftMonth(1)" aria-label="Наступний місяць">›</button>
+      <button class="btn btn-sm today-btn" :disabled="isCurrentMonth" @click="goToday">Сьогодні</button>
+    </div>
+
+    <div v-if="!schedule.settings" class="empty-hint card">Завантаження графіка…</div>
+
+    <div v-else class="calendar-layout">
       <div class="calendar-main">
-        <div class="calendar-toolbar">
-          <div class="month-nav">
-            <button class="btn btn-ghost btn-sm" @click="prevMonth" aria-label="Попередній місяць">←</button>
-            <span class="month-label">{{ monthLabel }}</span>
-            <button class="btn btn-ghost btn-sm" @click="nextMonth" aria-label="Наступний місяць">→</button>
+        <div class="summary card">
+          <div class="summary-top">
+            <div>
+              <div class="summary-label">Відпрацьовано</div>
+              <div class="summary-hours">
+                {{ fmt(monthTotals.hours) }}<span class="summary-of"> / {{ monthlyGoal }} год</span>
+              </div>
+            </div>
+            <div class="summary-money">
+              <div class="summary-label">Заробіток</div>
+              <div class="summary-value">{{ money(monthTotals.value) }} ₴</div>
+            </div>
           </div>
-          <button class="btn btn-sm" @click="goToday">Сьогодні</button>
+          <div class="goal-bar">
+            <div class="goal-bar-fill" :style="{ width: goalProgressPct + '%' }"></div>
+          </div>
+          <div class="summary-foot">
+            <span>{{ goalProgressPct }}% цілі</span>
+            <span v-if="workDaysLeft">ще {{ workDaysLeft }} робочих днів</span>
+            <span>вихідні: {{ restDaysLabel(schedule.settings) }}</span>
+          </div>
         </div>
 
-        <div v-if="!schedule.settings" class="empty-hint card">Завантаження графіка…</div>
-
-        <template v-else>
-          <div class="goal-card card">
-            <div class="goal-top">
-              <span class="goal-label">Відпрацьовано за {{ monthLabel }}</span>
-              <span class="goal-value">{{ monthTotalHours }}<span class="goal-of">/ {{ monthlyGoal }} год</span></span>
-            </div>
-            <div class="goal-bar">
-              <div class="goal-bar-fill" :style="{ width: goalProgressPct + '%' }"></div>
-            </div>
-          </div>
-
+        <div class="calendar card" @touchstart.passive="onTouchStart" @touchend="onTouchEnd">
           <div class="weekday-row">
-            <span v-for="w in weekdayLabels" :key="w">{{ w }}</span>
+            <span v-for="w in WEEKDAYS" :key="w.idx">{{ w.short }}</span>
           </div>
 
           <div class="grid">
             <template v-for="(row, ri) in weeks" :key="ri">
-              <div
-                v-for="(date, ci) in row"
-                :key="ci"
-                class="cell"
-                :class="[
-                  date ? cellInfo(date).status : 'blank',
-                  { today: date && cellInfo(date).isToday, overridden: date && cellInfo(date).overridden }
-                ]"
-                :role="date ? 'button' : undefined"
-                :tabindex="date ? 0 : -1"
-                @click="date && (openDate = cellInfo(date).key)"
-                @keydown.enter="date && (openDate = cellInfo(date).key)"
-              >
-                <template v-if="date">
-                  <span class="cell-day">{{ date.getDate() }}</span>
-                  <span v-if="cellInfo(date).overridden" class="cell-marker" title="Заміна графіка">◇</span>
-                  <span v-if="cellInfo(date).shift" class="cell-readout">
-                    <span v-if="cellInfo(date).shift.total_hours">{{ cellInfo(date).shift.total_hours }}г</span>
-                    <span v-if="cellInfo(date).itemsCount">{{ cellInfo(date).itemsCount }}шт</span>
-                    <span v-if="cellInfo(date).payValue" class="cell-value">{{ cellInfo(date).payValue }}₴</span>
+              <template v-for="(c, ci) in row" :key="ci">
+                <button
+                  v-if="c"
+                  type="button"
+                  class="cell"
+                  :class="[c.status, { today: c.isToday, overridden: c.overridden, past: c.isPast }]"
+                  :aria-label="`${c.day}, ${c.type === 'work' ? 'робочий' : 'вихідний'}`"
+                  @click="openDate = c.key"
+                >
+                  <span class="cell-day">{{ c.day }}</span>
+                  <span v-if="c.overridden" class="cell-marker" title="Заміна графіка"></span>
+                  <span v-if="c.shift" class="cell-readout">
+                    <span v-if="c.shift.total_hours" class="cell-hours">{{ fmt(c.shift.total_hours) }}г</span>
+                    <span v-if="c.itemsCount" class="cell-items">{{ c.itemsCount }}шт</span>
+                    <span v-if="c.payValue" class="cell-value">{{ money(c.payValue) }}₴</span>
                   </span>
-                </template>
-              </div>
+                </button>
+                <div v-else class="cell blank"></div>
+              </template>
               <div class="week-summary" :class="{ empty: !weekTotals[ri].hasAnyShift }">
-                <span class="week-summary-label">тиждень</span>
+                <span class="week-summary-label">тиждень {{ weekTotals[ri].range }}</span>
                 <span class="week-summary-values">
-                  <span>{{ weekTotals[ri].hours }}г</span>
-                  <span v-if="weekTotals[ri].itemsCount">· {{ weekTotals[ri].itemsCount }}шт</span>
-                  <span v-if="weekTotals[ri].value" class="week-summary-value">· {{ weekTotals[ri].value }}₴</span>
+                  <span>{{ fmt(weekTotals[ri].hours) }}г</span>
+                  <span v-if="weekTotals[ri].itemsCount">{{ weekTotals[ri].itemsCount }}шт</span>
+                  <span v-if="weekTotals[ri].value" class="week-summary-value">{{ money(weekTotals[ri].value) }}₴</span>
                 </span>
               </div>
             </template>
           </div>
 
           <div class="legend">
-            <span><i class="swatch work"></i> відпрацьовано (є години)</span>
-            <span><i class="swatch rest"></i> вихідний</span>
-            <span><i class="swatch unset"></i> робочий, ще не внесено години</span>
-            <span><i class="swatch marker">◇</i> заміна графіка</span>
+            <span><i class="swatch work"></i>відпрацьовано</span>
+            <span><i class="swatch unset"></i>робочий</span>
+            <span><i class="swatch rest"></i>вихідний</span>
+            <span><i class="swatch marker"></i>заміна</span>
           </div>
-        </template>
+        </div>
       </div>
 
-      <aside class="calendar-sidebar" v-if="schedule.settings">
+      <aside class="calendar-sidebar">
         <div class="stats-card card">
-          <p class="panel-title">Статистика за {{ monthLabel }}</p>
-
-          <div class="stats-week" v-for="(w, i) in weekTotals" :key="i">
-            <div class="stats-week-header">Тиждень {{ weekRanges[i] }}</div>
-            <div class="stats-line">
-              <span>Години</span>
-              <span>{{ w.hours }}г <span class="stats-money">· {{ w.hoursValue }}₴</span></span>
-            </div>
-            <div class="stats-line">
-              <span>Трейд-ін</span>
-              <span>{{ w.tradeinCount }}шт <span class="stats-money">· {{ w.tradeinValue }}₴</span></span>
-            </div>
-            <div class="stats-line">
-              <span>Нова Пошта</span>
-              <span>{{ w.novaPoshtaCount }}шт <span class="stats-money">· {{ w.novaPoshtaValue }}₴</span></span>
-            </div>
-            <div class="stats-line">
-              <span>Заявки</span>
-              <span>{{ w.regularCount }}шт <span class="stats-money">· {{ w.regularValue }}₴</span></span>
-            </div>
+          <p class="panel-title">Разом за місяць</p>
+          <div class="stats-line">
+            <span>Години</span>
+            <span>{{ fmt(monthTotals.hours) }}г <span class="stats-money">{{ money(monthTotals.hoursValue) }}₴</span></span>
+          </div>
+          <div class="stats-line">
+            <span>Трейд-ін</span>
+            <span>{{ monthTotals.tradeinCount }}шт <span class="stats-money">{{ money(monthTotals.tradeinValue) }}₴</span></span>
+          </div>
+          <div class="stats-line">
+            <span>Нова Пошта</span>
+            <span>
+              {{ monthTotals.novaPoshtaCount }}шт <span class="stats-money">{{ money(monthTotals.novaPoshtaValue) }}₴</span>
+            </span>
+          </div>
+          <div class="stats-line">
+            <span>Заявки</span>
+            <span>{{ monthTotals.regularCount }}шт <span class="stats-money">{{ money(monthTotals.regularValue) }}₴</span></span>
+          </div>
+          <div class="stats-line stats-grand-total">
+            <span>Всього</span>
+            <span>{{ money(monthTotals.value) }}₴</span>
           </div>
 
-          <div class="stats-week stats-total-block">
-            <div class="stats-week-header">Разом за місяць</div>
-            <div class="stats-line">
-              <span>Години</span>
-              <span>{{ monthTotals.hours }}г <span class="stats-money">· {{ monthTotals.hoursValue }}₴</span></span>
+          <details class="weeks-details">
+            <summary>По тижнях</summary>
+            <div class="stats-week" v-for="(w, i) in weekTotals" :key="i">
+              <div class="stats-week-header">
+                <span>Тиждень {{ w.range }}</span>
+                <span class="stats-week-total">{{ money(w.value) }}₴</span>
+              </div>
+              <div class="stats-line">
+                <span>Години</span>
+                <span>{{ fmt(w.hours) }}г <span class="stats-money">{{ money(w.hoursValue) }}₴</span></span>
+              </div>
+              <div class="stats-line">
+                <span>Трейд-ін</span>
+                <span>{{ w.tradeinCount }}шт <span class="stats-money">{{ money(w.tradeinValue) }}₴</span></span>
+              </div>
+              <div class="stats-line">
+                <span>Нова Пошта</span>
+                <span>{{ w.novaPoshtaCount }}шт <span class="stats-money">{{ money(w.novaPoshtaValue) }}₴</span></span>
+              </div>
+              <div class="stats-line">
+                <span>Заявки</span>
+                <span>{{ w.regularCount }}шт <span class="stats-money">{{ money(w.regularValue) }}₴</span></span>
+              </div>
             </div>
-            <div class="stats-line">
-              <span>Трейд-ін</span>
-              <span>{{ monthTotals.tradeinCount }}шт <span class="stats-money">· {{ monthTotals.tradeinValue }}₴</span></span>
-            </div>
-            <div class="stats-line">
-              <span>Нова Пошта</span>
-              <span>{{ monthTotals.novaPoshtaCount }}шт <span class="stats-money">· {{ monthTotals.novaPoshtaValue }}₴</span></span>
-            </div>
-            <div class="stats-line">
-              <span>Заявки</span>
-              <span>{{ monthTotals.regularCount }}шт <span class="stats-money">· {{ monthTotals.regularValue }}₴</span></span>
-            </div>
-            <div class="stats-line stats-grand-total">
-              <span>Всього ₴</span>
-              <span>{{ Math.round((monthTotals.hoursValue + monthTotals.itemsValue) * 100) / 100 }}₴</span>
-            </div>
-          </div>
+          </details>
         </div>
       </aside>
     </div>
@@ -357,7 +344,6 @@ const weekdayLabels = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Нд'];
   display: flex;
   flex-direction: column;
   gap: var(--space-4);
-  width: 100%;
   min-width: 0;
 }
 .calendar-main {
@@ -370,8 +356,7 @@ const weekdayLabels = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Нд'];
   min-width: 0;
 }
 
-/* Sidebar sits to the LEFT on desktop, ahead of the calendar — DOM order
-   stays main-first so mobile still shows the calendar before the stats. */
+/* Sidebar sits to the right on desktop; mobile shows calendar first. */
 @media (min-width: 900px) {
   .calendar-layout {
     flex-direction: row;
@@ -379,114 +364,119 @@ const weekdayLabels = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Нд'];
   }
   .calendar-main {
     flex: 1;
-    min-width: 0;
   }
   .calendar-sidebar {
-    order: -1;
-    flex: 0 0 280px;
+    flex: 0 0 290px;
     position: sticky;
-    top: 88px;
+    top: 84px;
   }
 }
 
 .calendar-toolbar {
   display: flex;
-  flex-wrap: wrap;
   align-items: center;
-  justify-content: space-between;
-  gap: var(--space-2);
-  min-width: 0;
-}
-.month-nav {
-  display: flex;
-  align-items: center;
-  gap: var(--space-3);
-  min-width: 0;
+  gap: var(--space-1);
 }
 .month-label {
-  font-size: 16px;
-  font-weight: 600;
+  font-size: 20px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
   text-transform: capitalize;
-  text-align: center;
   white-space: nowrap;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  padding: 0 var(--space-1);
+}
+.today-btn {
+  margin-left: auto;
 }
 
-.goal-card {
+/* Month summary */
+.summary {
   padding: var(--space-4) var(--space-5);
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 12px;
 }
-.goal-top {
+.summary-top {
   display: flex;
-  align-items: baseline;
   justify-content: space-between;
+  align-items: flex-end;
   gap: var(--space-3);
-  flex-wrap: wrap;
 }
-.goal-label {
-  font-size: 13px;
+.summary-label {
+  font-size: 12px;
   color: var(--ink-2);
-  text-transform: capitalize;
+  margin-bottom: 2px;
 }
-.goal-value {
+.summary-hours,
+.summary-value {
   font-family: var(--font-num);
-  font-size: 18px;
+  font-size: 24px;
   font-weight: 700;
-  color: var(--ink-0);
   white-space: nowrap;
 }
-.goal-of {
-  font-size: 13px;
+.summary-of {
+  font-size: 14px;
   font-weight: 500;
   color: var(--ink-2);
-  margin-left: 6px;
+}
+.summary-money {
+  text-align: right;
+}
+.summary-value {
+  color: var(--accent);
 }
 .goal-bar {
   height: 8px;
-  border-radius: 5px;
-  background: var(--bg-2);
-  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--bg-3);
   overflow: hidden;
 }
 .goal-bar-fill {
   height: 100%;
-  background: var(--state-work-border);
-  border-radius: 5px;
-  transition: width 0.3s var(--ease);
+  background: var(--accent);
+  border-radius: 999px;
+  transition: width 0.4s var(--ease);
+}
+.summary-foot {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 14px;
+  font-size: 12px;
+  color: var(--ink-3);
 }
 
-.weekday-row {
+/* Calendar grid */
+.calendar {
+  padding: var(--space-4);
+}
+.weekday-row,
+.grid {
   display: grid;
-  grid-template-columns: repeat(7, 1fr);
+  grid-template-columns: repeat(7, minmax(0, 1fr));
   gap: 6px;
-  width: 100%;
-  min-width: 0;
+}
+.weekday-row {
+  margin-bottom: 8px;
 }
 .weekday-row span {
   font-size: 11px;
+  font-weight: 600;
   color: var(--ink-3);
   text-align: center;
-  min-width: 0;
-}
-
-.grid {
-  display: grid;
-  grid-template-columns: repeat(7, 1fr);
-  gap: 6px;
-  width: 100%;
-  min-width: 0;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
 }
 
 .cell {
-  width: 100%;
   min-width: 0;
-  overflow: hidden;
-  box-sizing: border-box;
   aspect-ratio: 1 / 1;
-  border-radius: var(--radius-sm);
+  overflow: hidden;
+  border-radius: 10px;
   border: 1px solid var(--line-soft);
-  background: var(--surface-rest);
+  background: var(--bg-2);
   color: var(--ink-2);
   cursor: pointer;
   display: flex;
@@ -499,14 +489,13 @@ const weekdayLabels = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Нд'];
   text-align: left;
   position: relative;
   user-select: none;
-  transition: border-color 0.15s var(--ease), background 0.15s var(--ease);
-}
-.cell:focus-visible {
-  outline: 2px solid var(--ink-0);
-  outline-offset: 1px;
+  transition: border-color 0.15s var(--ease), background 0.15s var(--ease), transform 0.1s var(--ease);
 }
 .cell:hover {
-  border-color: var(--ink-2);
+  border-color: var(--line-strong);
+}
+.cell:active {
+  transform: scale(0.95);
 }
 .cell.blank {
   visibility: hidden;
@@ -520,57 +509,55 @@ const weekdayLabels = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Нд'];
 .cell.rest {
   background: var(--state-rest-bg);
   color: var(--state-rest-text);
-  border-color: var(--state-rest-border);
-}
-.cell.unset {
-  background: var(--bg-2);
-  color: var(--ink-2);
-  border-color: var(--line);
+  border-color: transparent;
 }
 .cell.unset .cell-day {
-  color: var(--ink-1);
+  color: var(--ink-0);
 }
-.cell.overridden {
+.cell.past.unset {
   border-style: dashed;
-  border-color: var(--line-strong);
+  border-color: var(--line);
 }
 .cell.today {
-  box-shadow: 0 0 0 1.5px var(--surface-today-ring) inset;
+  box-shadow: 0 0 0 2px var(--surface-today-ring);
 }
 
 .cell-day {
-  font-size: 13px;
-  font-weight: 600;
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 1;
+}
+.cell.rest .cell-day {
+  color: var(--state-rest-text);
+}
+.cell.work .cell-day {
   color: var(--ink-0);
 }
 .cell-marker {
   position: absolute;
-  top: 6px;
-  right: 8px;
-  font-size: 10px;
-  color: var(--ink-0);
+  top: 7px;
+  right: 7px;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #fbbf24;
 }
 .cell-readout {
   font-size: 10.5px;
-  color: inherit;
   display: flex;
   flex-direction: column;
   gap: 1px;
-  opacity: 0.85;
   min-width: 0;
   max-width: 100%;
-  line-height: 1.25;
+  line-height: 1.2;
 }
 .cell-readout span {
-  min-width: 0;
-  overflow-wrap: anywhere;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 .cell-value {
   font-weight: 700;
-  opacity: 1;
-}
-.cell.work .cell-readout {
-  color: inherit;
 }
 
 .week-summary {
@@ -578,101 +565,39 @@ const weekdayLabels = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Нд'];
   display: flex;
   align-items: baseline;
   justify-content: space-between;
-  padding: 5px 10px;
-  margin-top: -1px;
+  gap: var(--space-2);
+  padding: 2px 4px 8px;
   font-family: var(--font-num);
   font-size: 11px;
   color: var(--ink-2);
 }
 .week-summary-label {
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
   color: var(--ink-3);
   font-family: var(--font-ui);
-  font-size: 10px;
+  font-size: 11px;
+  white-space: nowrap;
 }
 .week-summary-values {
   display: flex;
-  gap: 5px;
+  gap: 8px;
   color: var(--ink-1);
+  white-space: nowrap;
 }
 .week-summary-value {
-  color: var(--state-work-text);
+  color: var(--accent);
   font-weight: 600;
 }
 .week-summary.empty {
-  opacity: 0.5;
-}
-.week-summary.empty .week-summary-value {
-  color: var(--ink-2);
+  opacity: 0.45;
 }
 
 .legend {
   display: flex;
   flex-wrap: wrap;
-  gap: var(--space-5);
-  row-gap: 8px;
+  gap: 6px 16px;
   font-size: 12px;
   color: var(--ink-2);
-  margin-top: var(--space-3);
-}
-
-.stats-card {
-  padding: var(--space-4) var(--space-5);
-}
-.stats-week {
-  padding: 10px 0;
-  border-bottom: 1px solid var(--line-soft);
-}
-.stats-week:last-of-type {
-  border-bottom: none;
-}
-.stats-week-header {
-  font-size: 11.5px;
-  font-weight: 600;
-  color: var(--ink-2);
-  margin-bottom: 6px;
-}
-.stats-line {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: var(--space-2);
-  font-family: var(--font-num);
-  font-size: 12.5px;
-  color: var(--ink-0);
-  padding: 2px 0;
-}
-.stats-line span:first-child {
-  font-family: var(--font-ui);
-  color: var(--ink-3);
-  white-space: nowrap;
-}
-.stats-money {
-  color: var(--ink-2);
-}
-.stats-total-block {
-  margin-top: 4px;
-  padding-top: 12px;
-  border-top: 1px solid var(--line-strong);
-  border-bottom: none;
-}
-.stats-total-block .stats-week-header {
-  color: var(--ink-0);
-  font-size: 13px;
-}
-.stats-grand-total {
-  margin-top: 4px;
-  padding-top: 6px;
-  border-top: 1px dashed var(--line);
-  font-weight: 700;
-}
-.stats-grand-total span:first-child {
-  color: var(--ink-0);
-}
-.stats-grand-total span:last-child {
-  color: var(--state-work-text);
-  font-size: 14px;
+  margin-top: var(--space-2);
 }
 .legend span {
   display: flex;
@@ -682,9 +607,10 @@ const weekdayLabels = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Нд'];
 .swatch {
   width: 12px;
   height: 12px;
-  border-radius: 3px;
+  border-radius: 4px;
   display: inline-block;
   border: 1px solid var(--line);
+  background: var(--bg-2);
 }
 .swatch.work {
   background: var(--state-work-bg);
@@ -694,16 +620,95 @@ const weekdayLabels = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Нд'];
   background: var(--state-rest-bg);
   border-color: var(--state-rest-border);
 }
-.swatch.unset {
-  background: var(--bg-2);
-  border-color: var(--line);
-}
 .swatch.marker {
+  width: 7px;
+  height: 7px;
   border: none;
-  font-style: normal;
+  border-radius: 50%;
+  background: #fbbf24;
+}
+
+/* Sidebar stats */
+.stats-card {
+  padding: var(--space-4) var(--space-5);
+}
+.stats-line {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-2);
+  font-family: var(--font-num);
+  font-size: 13px;
+  color: var(--ink-0);
+  padding: 4px 0;
+}
+.stats-line > span:first-child {
+  font-family: var(--font-ui);
+  color: var(--ink-2);
+  white-space: nowrap;
+}
+.stats-money {
+  color: var(--ink-3);
+  margin-left: 6px;
+}
+.stats-grand-total {
+  margin-top: 6px;
+  padding-top: 10px;
+  border-top: 1px solid var(--line);
+  font-weight: 700;
+  font-size: 15px;
+}
+.stats-grand-total > span:first-child {
+  color: var(--ink-0);
+}
+.stats-grand-total > span:last-child {
+  color: var(--accent);
+}
+.weeks-details {
+  margin-top: var(--space-3);
+  border-top: 1px solid var(--line-soft);
+  padding-top: var(--space-2);
+}
+.weeks-details summary {
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 600;
   color: var(--ink-1);
-  width: auto;
-  height: auto;
+  padding: 8px 0;
+  list-style: none;
+  display: flex;
+  justify-content: space-between;
+}
+.weeks-details summary::-webkit-details-marker {
+  display: none;
+}
+.weeks-details summary::after {
+  content: '▾';
+  color: var(--ink-3);
+  transition: transform 0.2s var(--ease);
+}
+.weeks-details[open] summary::after {
+  transform: rotate(180deg);
+}
+.stats-week {
+  padding: 10px 0;
+  border-top: 1px solid var(--line-soft);
+}
+.stats-week-header {
+  display: flex;
+  justify-content: space-between;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--ink-1);
+  margin-bottom: 4px;
+}
+.stats-week-total {
+  font-family: var(--font-num);
+  color: var(--accent);
+}
+.stats-week .stats-line {
+  font-size: 12px;
+  padding: 2px 0;
 }
 
 .empty-hint {
@@ -713,92 +718,64 @@ const weekdayLabels = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Нд'];
 }
 
 @media (max-width: 640px) {
-  .grid,
-  .weekday-row {
+  .month-label {
+    font-size: 18px;
+  }
+  .summary {
+    padding: var(--space-4);
+  }
+  .summary-hours,
+  .summary-value {
+    font-size: 21px;
+  }
+  .calendar {
+    padding: var(--space-3) 10px;
+  }
+  .weekday-row,
+  .grid {
     gap: 4px;
   }
   .cell {
-    padding: 6px;
-    border-radius: 4px;
+    padding: 5px;
+    border-radius: 8px;
+    aspect-ratio: auto;
+    min-height: 54px;
+  }
+  .cell-day {
+    font-size: 13px;
+  }
+  /* On a phone a cell only fits the hours; money lives in the week row. */
+  .cell-items,
+  .cell-value {
+    display: none;
+  }
+  .cell-readout {
+    font-size: 10.5px;
+    font-weight: 600;
+  }
+  .cell-marker {
+    top: 5px;
+    right: 5px;
+  }
+  .stats-card {
+    padding: var(--space-4);
+  }
+}
+
+@media (max-width: 360px) {
+  .cell {
+    min-height: 48px;
+    padding: 4px;
   }
   .cell-day {
     font-size: 12px;
   }
   .cell-readout {
-    font-size: 9px;
-    flex-direction: column;
-    gap: 0;
-    line-height: 1.25;
+    font-size: 9.5px;
   }
-  .cell-readout span:first-child::after {
-    content: '';
-  }
-  .legend {
-    gap: var(--space-3);
-    font-size: 11px;
-    flex-wrap: wrap;
-    row-gap: 6px;
-  }
-}
-
-@media (max-width: 420px) {
-  .stats-card {
-    padding: var(--space-3) var(--space-4);
-  }
-  .stats-line {
-    font-size: 11.5px;
-  }
-  .stats-week-header {
-    font-size: 10.5px;
-  }
-  .goal-card {
-    padding: var(--space-3) var(--space-4);
-  }
-  .goal-value {
-    font-size: 16px;
-  }
-  .calendar-toolbar {
-    flex-wrap: wrap;
-    gap: var(--space-2);
-  }
-  .month-nav {
-    order: 1;
-    width: 100%;
-    justify-content: space-between;
-  }
-  .month-label {
-    min-width: 0;
-    font-size: 14px;
-  }
-  .calendar-toolbar > .btn {
-    order: 2;
-  }
-  .weekday-row span {
-    font-size: 10px;
-  }
-  .cell {
-    padding: 4px 5px;
-  }
-  .cell-day {
-    font-size: 11px;
-  }
-  .cell-marker {
-    top: 4px;
-    right: 5px;
-    font-size: 9px;
-  }
-  .cell-readout {
-    font-size: 8px;
-  }
-}
-
-@media (max-width: 340px) {
-  .grid,
-  .weekday-row {
-    gap: 3px;
-  }
-  .cell {
-    padding: 3px 4px;
+  .summary-hours,
+  .summary-value {
+    font-size: 18px;
   }
 }
 </style>

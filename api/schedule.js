@@ -25,9 +25,7 @@ export default async function handler(req, res) {
 
     if (req.method === 'POST' && action === 'update-settings') {
       const {
-        work_days,
-        rest_days,
-        anchor_date,
+        rest_weekdays,
         timezone,
         monthly_hours_goal,
         tradein_rate,
@@ -35,11 +33,16 @@ export default async function handler(req, res) {
         regular_rate,
         hourly_rate
       } = req.body || {};
-      if (!work_days || !rest_days || !anchor_date) {
-        return res.status(400).json({ error: 'Заповніть усі поля циклу' });
+      let restWeekdays = null;
+      if (rest_weekdays !== undefined) {
+        if (!Array.isArray(rest_weekdays) || rest_weekdays.some((d) => !Number.isInteger(d) || d < 0 || d > 6)) {
+          return res.status(400).json({ error: 'Некоректні вихідні дні' });
+        }
+        restWeekdays = [...new Set(rest_weekdays)].sort().join(',');
       }
       const result = await db.execute({
-        sql: `UPDATE settings SET work_days = ?, rest_days = ?, anchor_date = ?, timezone = COALESCE(?, timezone),
+        sql: `UPDATE settings SET rest_weekdays = COALESCE(?, rest_weekdays),
+                     timezone = COALESCE(?, timezone),
                      monthly_hours_goal = COALESCE(?, monthly_hours_goal),
                      tradein_rate = COALESCE(?, tradein_rate),
                      nova_poshta_rate = COALESCE(?, nova_poshta_rate),
@@ -47,9 +50,7 @@ export default async function handler(req, res) {
                      hourly_rate = COALESCE(?, hourly_rate)
               WHERE id = 1 RETURNING *`,
         args: [
-          work_days,
-          rest_days,
-          anchor_date,
+          restWeekdays,
           timezone || null,
           monthly_hours_goal || null,
           tradein_rate ?? null,

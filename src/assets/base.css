@@ -1,34 +1,39 @@
 .btn {
   font-family: var(--font-ui);
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 600;
+  min-height: 40px;
   padding: 9px 16px;
   border-radius: var(--radius-sm);
-  border: 1px solid var(--line-strong);
+  border: 1px solid var(--line);
   background: var(--bg-2);
   color: var(--ink-0);
   cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
   transition: background 0.15s var(--ease), border-color 0.15s var(--ease), transform 0.1s var(--ease);
 }
 .btn:hover {
   background: var(--bg-3);
-  border-color: var(--ink-2);
+  border-color: var(--line-strong);
 }
 .btn:active {
-  transform: translateY(1px);
+  transform: scale(0.98);
 }
 .btn:disabled {
   opacity: 0.4;
   cursor: not-allowed;
 }
 .btn-primary {
-  background: var(--ink-0);
-  color: var(--bg-0);
-  border-color: var(--ink-0);
+  background: var(--accent);
+  color: var(--accent-ink);
+  border-color: var(--accent);
 }
 .btn-primary:hover {
-  background: var(--ink-1);
-  border-color: var(--ink-1);
+  background: #6ee7a0;
+  border-color: #6ee7a0;
 }
 .btn-ghost {
   background: transparent;
@@ -40,22 +45,32 @@
 }
 .btn-danger {
   background: transparent;
-  border-color: var(--line-strong);
-  color: var(--ink-1);
+  border-color: var(--state-rest-border);
+  color: var(--state-rest-text);
 }
 .btn-danger:hover {
-  border-color: var(--ink-0);
-  color: var(--ink-0);
+  background: var(--state-rest-bg);
+  border-color: var(--state-rest-text);
 }
 .btn-sm {
-  padding: 6px 11px;
-  font-size: 12px;
+  min-height: 34px;
+  padding: 6px 12px;
+  font-size: 13px;
+}
+.btn-icon {
+  width: 40px;
+  padding: 0;
+  font-size: 18px;
+}
+.btn-block {
+  width: 100%;
 }
 
 .field {
   display: flex;
   flex-direction: column;
   gap: 6px;
+  min-width: 0;
 }
 .field label {
   font-size: 12px;
@@ -64,17 +79,20 @@
 }
 .input {
   font-family: var(--font-num);
-  font-size: 14px;
-  background: var(--bg-1);
+  font-size: 15px;
+  background: var(--bg-0);
   border: 1px solid var(--line);
   color: var(--ink-0);
-  padding: 9px 11px;
+  min-height: 44px;
+  padding: 10px 12px;
   border-radius: var(--radius-sm);
-  transition: border-color 0.15s var(--ease);
+  transition: border-color 0.15s var(--ease), box-shadow 0.15s var(--ease);
   width: 100%;
+  min-width: 0;
 }
 .input:focus {
-  border-color: var(--ink-2);
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-soft);
   outline: none;
 }
 .input::placeholder {
@@ -89,9 +107,11 @@
 }
 
 .panel-title {
-  font-size: 13px;
+  font-size: 12px;
   color: var(--ink-2);
   font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
   margin: 0 0 var(--space-3) 0;
 }
 
@@ -108,16 +128,19 @@
   background: var(--bg-3);
   border: 1px solid var(--line-strong);
   color: var(--ink-0);
-  padding: 11px 14px;
+  padding: 12px 14px;
   border-radius: var(--radius-sm);
-  font-size: 13px;
+  font-size: 14px;
   min-width: 220px;
   max-width: 340px;
-  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.4);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.45);
   animation: toast-in 0.18s var(--ease);
 }
+.toast.success {
+  border-left: 3px solid var(--accent);
+}
 .toast.error {
-  border-left: 2px solid var(--ink-0);
+  border-left: 3px solid var(--state-rest-text);
 }
 @keyframes toast-in {
   from {
@@ -134,18 +157,22 @@
   /* 16px min prevents iOS Safari from auto-zooming in on focus */
   .input {
     font-size: 16px;
-    padding: 10px 12px;
   }
   .btn {
-    padding: 10px 16px;
+    min-height: 44px;
   }
   .btn-sm {
-    padding: 8px 12px;
+    min-height: 38px;
   }
+  .btn-icon {
+    width: 44px;
+  }
+  /* Top of the screen so toasts never cover the bottom tab bar */
   .toast-stack {
     left: 12px;
     right: 12px;
-    bottom: 12px;
+    top: calc(12px + var(--safe-top));
+    bottom: auto;
   }
   .toast {
     min-width: 0;

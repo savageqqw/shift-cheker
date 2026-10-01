@@ -1,12 +1,11 @@
 <script setup>
 import { ref, watch, onMounted } from 'vue';
 import { useScheduleStore } from '../stores/schedule.js';
+import { WEEKDAYS, parseRestWeekdays } from '../lib/scheduleEngine.js';
 
 const schedule = useScheduleStore();
 
-const workDays = ref(5);
-const restDays = ref(2);
-const anchorDate = ref('');
+const restWeekdays = ref([0, 1]);
 const monthlyGoal = ref(200);
 const tradeinRate = ref(20);
 const novaPoshtaRate = ref(50);
@@ -21,9 +20,7 @@ onMounted(async () => {
 
 function syncFromStore() {
   if (!schedule.settings) return;
-  workDays.value = schedule.settings.work_days;
-  restDays.value = schedule.settings.rest_days;
-  anchorDate.value = schedule.settings.anchor_date;
+  restWeekdays.value = parseRestWeekdays(schedule.settings.rest_weekdays);
   monthlyGoal.value = schedule.settings.monthly_hours_goal ?? 200;
   tradeinRate.value = schedule.settings.tradein_rate ?? 20;
   novaPoshtaRate.value = schedule.settings.nova_poshta_rate ?? 50;
@@ -33,13 +30,18 @@ function syncFromStore() {
 
 watch(() => schedule.settings, syncFromStore);
 
+function toggleRestDay(idx) {
+  const set = new Set(restWeekdays.value);
+  if (set.has(idx)) set.delete(idx);
+  else set.add(idx);
+  restWeekdays.value = [...set].sort();
+}
+
 async function save() {
   saving.value = true;
   try {
     await schedule.updateSettings({
-      work_days: Number(workDays.value),
-      rest_days: Number(restDays.value),
-      anchor_date: anchorDate.value,
+      rest_weekdays: restWeekdays.value,
       monthly_hours_goal: Number(monthlyGoal.value),
       tradein_rate: Number(tradeinRate.value),
       nova_poshta_rate: Number(novaPoshtaRate.value),
@@ -53,81 +55,76 @@ async function save() {
 </script>
 
 <template>
-  <div class="settings-page">
-    <div class="card panel">
-      <p class="panel-title">Базовий цикл</p>
+  <form class="settings-page" @submit.prevent="save">
+    <section class="card panel">
+      <p class="panel-title">Вихідні дні</p>
       <p class="panel-hint">
-        Цикл повторюється безкінечно від опорної дати. Наприклад, 5 робочих і 2 вихідних — це класичний графік
-        5/2. Окремі дні можна замінити вручну прямо в календарі — для підміни напарника чи інших виключень.
+        Позначені дні щотижня йдуть як вихідні, решта як робочі. Якщо треба підмінити напарника, тисни на день
+        у календарі і міняй його вручну.
       </p>
+      <div class="weekday-picker" role="group" aria-label="Вихідні дні тижня">
+        <button
+          v-for="w in WEEKDAYS"
+          :key="w.idx"
+          type="button"
+          class="weekday-chip"
+          :class="{ rest: restWeekdays.includes(w.idx) }"
+          :aria-pressed="restWeekdays.includes(w.idx)"
+          :title="w.long"
+          @click="toggleRestDay(w.idx)"
+        >
+          {{ w.short }}
+        </button>
+      </div>
+    </section>
 
+    <section class="card panel">
+      <p class="panel-title">Години й оплата</p>
       <div class="row">
         <div class="field">
-          <label for="work">Робочих днів поспіль</label>
-          <input id="work" class="input" type="number" min="1" max="30" v-model="workDays" />
+          <label for="goal">Ціль, год/місяць</label>
+          <input id="goal" class="input" type="number" min="1" step="1" inputmode="numeric" v-model="monthlyGoal" />
         </div>
         <div class="field">
-          <label for="rest">Вихідних днів поспіль</label>
-          <input id="rest" class="input" type="number" min="1" max="30" v-model="restDays" />
+          <label for="hourly-rate">Ставка, ₴/год</label>
+          <input id="hourly-rate" class="input" type="number" min="0" step="0.01" inputmode="decimal" v-model="hourlyRate" />
         </div>
       </div>
+    </section>
 
-      <div class="field" style="margin-top: var(--space-4)">
-        <label for="anchor">Опорна дата (перший робочий день циклу)</label>
-        <input id="anchor" class="input" type="date" v-model="anchorDate" />
-      </div>
-
-      <button class="btn btn-primary" style="margin-top: var(--space-5)" :disabled="saving" @click="save">
-        Зберегти
-      </button>
-    </div>
-
-    <div class="card panel">
-      <p class="panel-title">Ціль по годинах</p>
-      <p class="panel-hint">Скільки годин на місяць — орієнтир для прогрес-бару на головній сторінці.</p>
-      <div class="field">
-        <label for="goal">Годин на місяць</label>
-        <input id="goal" class="input" type="number" min="1" step="1" v-model="monthlyGoal" />
-      </div>
-      <button class="btn btn-primary" style="margin-top: var(--space-4)" :disabled="saving" @click="save">
-        Зберегти
-      </button>
-    </div>
-
-    <div class="card panel">
-      <p class="panel-title">Оплата за години</p>
-      <p class="panel-hint">Ставка за годину роботи — використовується для розрахунку заробітку за зміну.</p>
-      <div class="field">
-        <label for="hourly-rate">Грн/год</label>
-        <input id="hourly-rate" class="input" type="number" min="0" step="0.01" v-model="hourlyRate" />
-      </div>
-      <button class="btn btn-primary" style="margin-top: var(--space-4)" :disabled="saving" @click="save">
-        Зберегти
-      </button>
-    </div>
-
-    <div class="card panel">
-      <p class="panel-title">Оцінка товару</p>
-      <p class="panel-hint">Скільки коштує одна заявка кожного типу — використовується для розрахунку суми за зміну.</p>
+    <section class="card panel">
+      <p class="panel-title">Оплата за товар</p>
+      <p class="panel-hint">Скільки ₴ приносить одна одиниця кожного типу.</p>
       <div class="row row-3">
         <div class="field">
-          <label for="tradein-rate">Трейд-ін, ₴/шт</label>
-          <input id="tradein-rate" class="input" type="number" min="0" step="0.01" v-model="tradeinRate" />
+          <label for="tradein-rate">Трейд-ін</label>
+          <input id="tradein-rate" class="input" type="number" min="0" step="0.01" inputmode="decimal" v-model="tradeinRate" />
         </div>
         <div class="field">
-          <label for="nova-poshta-rate">Трейд-ін Нова Пошта, ₴/шт</label>
-          <input id="nova-poshta-rate" class="input" type="number" min="0" step="0.01" v-model="novaPoshtaRate" />
+          <label for="nova-poshta-rate">Нова Пошта</label>
+          <input
+            id="nova-poshta-rate"
+            class="input"
+            type="number"
+            min="0"
+            step="0.01"
+            inputmode="decimal"
+            v-model="novaPoshtaRate"
+          />
         </div>
         <div class="field">
-          <label for="regular-rate">Заявки, ₴/шт</label>
-          <input id="regular-rate" class="input" type="number" min="0" step="0.01" v-model="regularRate" />
+          <label for="regular-rate">Заявки</label>
+          <input id="regular-rate" class="input" type="number" min="0" step="0.01" inputmode="decimal" v-model="regularRate" />
         </div>
       </div>
-      <button class="btn btn-primary" style="margin-top: var(--space-4)" :disabled="saving" @click="save">
-        Зберегти
+    </section>
+
+    <div class="save-bar">
+      <button class="btn btn-primary btn-block" type="submit" :disabled="saving">
+        {{ saving ? 'Зберігаю…' : 'Зберегти' }}
       </button>
     </div>
-  </div>
+  </form>
 </template>
 
 <style scoped>
@@ -135,13 +132,14 @@ async function save() {
   display: flex;
   flex-direction: column;
   gap: var(--space-4);
-  max-width: 480px;
+  max-width: 520px;
+  margin: 0 auto;
 }
 .panel {
   padding: var(--space-5);
 }
 .panel-hint {
-  font-size: 13px;
+  font-size: 13.5px;
   color: var(--ink-2);
   line-height: 1.5;
   margin: 0 0 var(--space-4) 0;
@@ -152,16 +150,59 @@ async function save() {
   gap: var(--space-3);
 }
 .row-3 {
-  grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+  grid-template-columns: repeat(3, 1fr);
 }
 
-@media (max-width: 420px) {
-  .row,
-  .row-3 {
-    grid-template-columns: 1fr;
+.weekday-picker {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 6px;
+}
+.weekday-chip {
+  height: 46px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--state-work-border);
+  background: var(--state-work-bg);
+  color: var(--state-work-text);
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s var(--ease), border-color 0.15s var(--ease), color 0.15s var(--ease),
+    transform 0.1s var(--ease);
+}
+.weekday-chip:active {
+  transform: scale(0.95);
+}
+.weekday-chip.rest {
+  border-color: var(--state-rest-border);
+  background: var(--state-rest-bg);
+  color: var(--state-rest-text);
+}
+
+.save-bar {
+  position: sticky;
+  bottom: var(--space-4);
+}
+
+@media (max-width: 760px) {
+  .save-bar {
+    bottom: calc(var(--tabbar-h) + var(--safe-bottom) + var(--space-3));
   }
+}
+
+@media (max-width: 480px) {
   .panel {
     padding: var(--space-4);
+  }
+  .row-3 {
+    grid-template-columns: 1fr 1fr;
+  }
+  .row-3 .field:last-child {
+    grid-column: 1 / -1;
+  }
+  .weekday-chip {
+    height: 44px;
+    font-size: 13px;
   }
 }
 </style>

@@ -1,41 +1,44 @@
 :root {
-  /* Base achromatic surfaces */
-  --bg-0: #0a0a0a;
-  --bg-1: #121212;
-  --bg-2: #191919;
-  --bg-3: #222222;
+  /* Surfaces — near-black with a faint cool tint */
+  --bg-0: #0b0c0e;
+  --bg-1: #131418;
+  --bg-2: #1a1c21;
+  --bg-3: #23262c;
 
   /* Borders */
-  --line-soft: #232323;
-  --line: #2e2e2e;
-  --line-strong: #454545;
+  --line-soft: #1f2126;
+  --line: #2a2d34;
+  --line-strong: #3d414a;
 
   /* Text */
-  --ink-0: #f2f2f0;
-  --ink-1: #c4c4c0;
-  --ink-2: #8a8a86;
-  --ink-3: #575754;
+  --ink-0: #f3f4f6;
+  --ink-1: #c7cad1;
+  --ink-2: #8b909a;
+  --ink-3: #5b606a;
 
-  /* Functional (still achromatic — weight/opacity carries meaning, not hue) */
-  --surface-work: #1c1c1c;
-  --surface-rest: #0d0d0d;
-  --surface-today-ring: #f2f2f0;
+  --surface-today-ring: #f3f4f6;
 
-  /* Shift status accent — the one deliberate spot of color in the app */
-  --state-work-bg: rgba(45, 165, 95, 0.16);
-  --state-work-border: rgba(60, 200, 115, 0.55);
-  --state-work-text: #8fe3ac;
-  --state-rest-bg: rgba(200, 60, 60, 0.14);
-  --state-rest-border: rgba(220, 80, 80, 0.5);
-  --state-rest-text: #f0a3a3;
+  /* Accent — used for primary actions, progress and money */
+  --accent: #4ade80;
+  --accent-ink: #06210f;
+  --accent-soft: rgba(74, 222, 128, 0.12);
+
+  /* Day states */
+  --state-work-bg: rgba(74, 222, 128, 0.13);
+  --state-work-border: rgba(74, 222, 128, 0.45);
+  --state-work-text: #86efac;
+  --state-rest-bg: rgba(248, 113, 113, 0.1);
+  --state-rest-border: rgba(248, 113, 113, 0.35);
+  --state-rest-text: #fca5a5;
 
   /* Type */
   --font-ui: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
   --font-num: 'JetBrains Mono', ui-monospace, SFMono-Regular, monospace;
 
   /* Scale */
-  --radius-sm: 3px;
-  --radius-md: 5px;
+  --radius-sm: 8px;
+  --radius-md: 14px;
+  --radius-lg: 20px;
   --space-1: 4px;
   --space-2: 8px;
   --space-3: 12px;
@@ -44,7 +47,14 @@
   --space-6: 32px;
   --space-7: 48px;
 
+  /* Mobile bottom tab bar height (without the home-indicator inset) */
+  --tabbar-h: 64px;
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --safe-top: env(safe-area-inset-top, 0px);
+
   --ease: cubic-bezier(0.2, 0.8, 0.2, 1);
+
+  color-scheme: dark;
 }
 
 * {
@@ -59,6 +69,7 @@ body {
   color: var(--ink-0);
   font-family: var(--font-ui);
   -webkit-font-smoothing: antialiased;
+  -webkit-text-size-adjust: 100%;
 }
 
 html {
@@ -71,6 +82,7 @@ body {
   min-height: 100dvh;
   overflow-x: hidden;
   -webkit-tap-highlight-color: transparent;
+  overscroll-behavior-y: none;
 }
 
 #app {
@@ -109,6 +121,7 @@ button {
   font-family: inherit;
   appearance: none;
   -webkit-appearance: none;
+  touch-action: manipulation;
 }
 
 :focus-visible {

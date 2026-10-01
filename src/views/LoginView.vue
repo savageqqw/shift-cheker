@@ -29,8 +29,10 @@ async function submit() {
   <div class="login-page">
     <form class="login-card card" @submit.prevent="submit">
       <div class="login-mark">◆</div>
-      <h1>Shiftly</h1>
-      <p class="login-sub">Графік роботи та продуктивність</p>
+      <div>
+        <h1>Shiftly</h1>
+        <p class="login-sub">Графік, години й заробіток</p>
+      </div>
 
       <div class="field">
         <label for="password">Пароль</label>
@@ -38,6 +40,7 @@ async function submit() {
           id="password"
           class="input"
           type="password"
+          autocomplete="current-password"
           v-model="password"
           autofocus
           placeholder="••••••••"
@@ -46,7 +49,7 @@ async function submit() {
 
       <p v-if="error" class="login-error">{{ error }}</p>
 
-      <button class="btn btn-primary" type="submit" :disabled="loading || !password">
+      <button class="btn btn-primary btn-block" type="submit" :disabled="loading || !password">
         {{ loading ? 'Вхід…' : 'Увійти' }}
       </button>
     </form>
@@ -56,40 +59,55 @@ async function submit() {
 <style scoped>
 .login-page {
   min-height: 100vh;
+  min-height: 100dvh;
   display: flex;
   align-items: center;
   justify-content: center;
   padding: var(--space-4);
+  background: radial-gradient(600px 400px at 50% 0%, rgba(74, 222, 128, 0.08), transparent 70%);
 }
 .login-card {
   width: 100%;
-  max-width: 340px;
+  max-width: 360px;
   padding: var(--space-6);
   display: flex;
   flex-direction: column;
   gap: var(--space-4);
+  border-radius: var(--radius-lg);
 }
 .login-mark {
-  font-size: 20px;
-  color: var(--ink-1);
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--accent-soft);
+  color: var(--accent);
+  font-size: 18px;
 }
 .login-card h1 {
   margin: 0;
-  font-size: 20px;
+  font-size: 22px;
   letter-spacing: -0.01em;
 }
 .login-sub {
-  margin: -8px 0 0 0;
-  font-size: 13px;
+  margin: 4px 0 0;
+  font-size: 14px;
   color: var(--ink-2);
 }
 .login-error {
-  font-size: 12px;
-  color: var(--ink-0);
-  background: var(--bg-2);
-  border: 1px dashed var(--line-strong);
+  font-size: 13px;
+  color: var(--state-rest-text);
+  background: var(--state-rest-bg);
   border-radius: var(--radius-sm);
-  padding: 8px 10px;
+  padding: 10px 12px;
   margin: 0;
+}
+
+@media (max-width: 480px) {
+  .login-card {
+    padding: var(--space-5);
+  }
 }
 </style>

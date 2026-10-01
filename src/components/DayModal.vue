@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed, watch } from 'vue';
+import { ref, computed, watch, onMounted, onBeforeUnmount } from 'vue';
 import { useScheduleStore } from '../stores/schedule.js';
 import { useShiftsStore } from '../stores/shifts.js';
 import { baseDayType, effectiveDayType } from '../lib/scheduleEngine.js';
@@ -15,7 +15,6 @@ const shifts = useShiftsStore();
 const override = computed(() => schedule.overrides[props.date] || null);
 const base = computed(() => baseDayType(props.date, schedule.settings));
 const effectiveType = computed(() => effectiveDayType(props.date, schedule.settings, schedule.overrides).type);
-const isUnset = computed(() => effectiveType.value === 'unset');
 const shift = computed(() => shifts.byDate[props.date] || null);
 const isLogged = computed(() => !!(shift.value && shift.value.start_time && shift.value.end_time));
 // Same rule as the calendar grid: a scheduled work day only reads as
@@ -41,15 +40,24 @@ const hourlyRate = computed(() => schedule.settings?.hourly_rate ?? 95);
 const tradeinValue = computed(() => (Number(tradein.value) || 0) * tradeinRate.value);
 const novaPoshtaValue = computed(() => (Number(novaPoshta.value) || 0) * novaPoshtaRate.value);
 const regularValue = computed(() => (Number(regular.value) || 0) * regularRate.value);
-const hoursValue = computed(() => (computedHours.value || 0) * hourlyRate.value);
-const totalValue = computed(
-  () =>
-    Math.round((tradeinValue.value + novaPoshtaValue.value + regularValue.value + hoursValue.value) * 100) / 100
-);
+const hoursValue = computed(() => Math.round((computedHours.value || 0) * hourlyRate.value * 100) / 100);
+const itemsValue = computed(() => tradeinValue.value + novaPoshtaValue.value + regularValue.value);
+const totalValue = computed(() => Math.round((itemsValue.value + hoursValue.value) * 100) / 100);
+
+const counters = computed(() => [
+  { field: 'tradein', id: 'tradein', label: 'Трейд-ін', rate: tradeinRate.value, model: tradein },
+  { field: 'novaPoshta', id: 'nova-poshta', label: 'Нова Пошта', rate: novaPoshtaRate.value, model: novaPoshta },
+  { field: 'regular', id: 'regular', label: 'Заявки', rate: regularRate.value, model: regular }
+]);
 
 const prettyDate = computed(() => {
   const d = new Date(props.date + 'T00:00:00');
-  return d.toLocaleDateString('uk-UA', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+  return d.toLocaleDateString('uk-UA', { weekday: 'long', day: 'numeric', month: 'long' });
+});
+
+const statusText = computed(() => {
+  if (effectiveType.value === 'rest') return 'Вихідний';
+  return isLogged.value ? 'Робочий · відпрацьовано' : 'Робочий · години не внесено';
 });
 
 function toggleOverride() {
@@ -60,6 +68,13 @@ function toggleOverride() {
     return;
   }
   schedule.setOverride(props.date, nextWorking, overrideNote.value);
+}
+
+// Editing the comment on an existing swap should stick without re-toggling.
+function saveOverrideNote() {
+  if (override.value && overrideNote.value !== (override.value.note || '')) {
+    schedule.setOverride(props.date, override.value.is_working, overrideNote.value);
+  }
 }
 
 function clearOverride() {
@@ -86,13 +101,25 @@ async function saveShift() {
 let autosaveTimer = null;
 function autosave() {
   clearTimeout(autosaveTimer);
-  autosaveTimer = setTimeout(saveShift, 400);
+  autosaveTimer = setTimeout(() => {
+    autosaveTimer = null;
+    saveShift();
+  }, 500);
 }
 
-const countRefs = { tradein, novaPoshta, regular };
-function bump(field, delta) {
-  const target = countRefs[field];
-  target.value = Math.max(0, (Number(target.value) || 0) + delta);
+function bump(c, delta) {
+  c.model.value = Math.max(0, (Number(c.model.value) || 0) + delta);
+  if (navigator.vibrate) navigator.vibrate(8);
+  autosave();
+}
+
+function nowHHMM() {
+  const d = new Date();
+  return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+}
+function setNow(which) {
+  if (which === 'start') startTime.value = nowHHMM();
+  else endTime.value = nowHHMM();
   autosave();
 }
 
@@ -106,6 +133,7 @@ function closeModal() {
 }
 
 async function deleteShift() {
+  if (!confirm('Видалити запис за цей день?')) return;
   await shifts.remove(props.date);
   startTime.value = '';
   endTime.value = '';
@@ -136,141 +164,120 @@ watch(
     shiftNote.value = shift.value?.note || '';
   }
 );
+
+function onKey(e) {
+  if (e.key === 'Escape') closeModal();
+}
+onMounted(() => {
+  document.addEventListener('keydown', onKey);
+  document.body.style.overflow = 'hidden';
+});
+onBeforeUnmount(() => {
+  document.removeEventListener('keydown', onKey);
+  document.body.style.overflow = '';
+});
 </script>
 
 <template>
   <div class="overlay" @click.self="closeModal">
-    <div class="modal card">
+    <div class="modal" role="dialog" aria-modal="true" :aria-label="prettyDate">
+      <div class="grabber" @click="closeModal"></div>
       <div class="modal-head">
-        <div>
+        <div class="modal-head-text">
           <div class="modal-date">{{ prettyDate }}</div>
           <div class="modal-type" :class="displayStatus">
-            {{
-              effectiveType === 'work'
-                ? (isLogged ? 'Робочий день · відпрацьовано' : 'Робочий день · очікує годин')
-                : effectiveType === 'rest'
-                ? 'Вихідний'
-                : 'Графік не встановлено'
-            }}
+            <span class="status-dot"></span>
+            {{ statusText }}
             <span v-if="override" class="override-tag">заміна</span>
           </div>
         </div>
-        <button class="btn btn-ghost btn-sm" @click="closeModal">Закрити</button>
+        <button class="btn btn-ghost btn-icon close-btn" @click="closeModal" aria-label="Закрити">✕</button>
       </div>
 
-      <section class="modal-section">
-        <p class="panel-title">Заміна з напарником</p>
-        <div class="swap-row">
-          <button class="btn btn-sm" @click="toggleOverride">
-            {{ effectiveType === 'work' ? 'Позначити вихідним' : 'Позначити робочим' }}
+      <div class="modal-body">
+        <section class="modal-section" v-if="effectiveType === 'work'">
+          <div class="time-row">
+            <div class="field">
+              <label for="start">Початок</label>
+              <input id="start" class="input" type="time" v-model="startTime" @change="autosave" />
+              <button type="button" class="now-btn" @click="setNow('start')">зараз</button>
+            </div>
+            <div class="field">
+              <label for="end">Кінець</label>
+              <input id="end" class="input" type="time" v-model="endTime" @change="autosave" />
+              <button type="button" class="now-btn" @click="setNow('end')">зараз</button>
+            </div>
+          </div>
+          <div class="hours-readout">
+            <span>{{ computedHours !== null ? computedHours + ' год' : 'Вкажи час початку й кінця' }}</span>
+            <span v-if="computedHours" class="hours-money">{{ hoursValue }}₴</span>
+          </div>
+
+          <div class="counters">
+            <div class="counter-row" v-for="c in counters" :key="c.field">
+              <label :for="c.id" class="counter-label">
+                {{ c.label }}
+                <span class="rate-hint">{{ c.rate }}₴/шт</span>
+              </label>
+              <div class="counter">
+                <button type="button" class="counter-btn" @click="bump(c, -1)" aria-label="Мінус один">−</button>
+                <input
+                  :id="c.id"
+                  class="input counter-input"
+                  type="number"
+                  min="0"
+                  inputmode="numeric"
+                  v-model="c.model.value"
+                  @change="autosave"
+                />
+                <button type="button" class="counter-btn counter-btn-plus" @click="bump(c, 1)" aria-label="Плюс один">
+                  +
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <div class="field">
+            <label for="shift-note">Нотатка</label>
+            <input id="shift-note" class="input" v-model="shiftNote" placeholder="необовʼязково" @change="autosave" />
+          </div>
+        </section>
+
+        <section class="modal-section swap">
+          <p class="panel-title">Заміна з напарником</p>
+          <div class="swap-row">
+            <button class="btn btn-sm" @click="toggleOverride">
+              {{ effectiveType === 'work' ? 'Зробити вихідним' : 'Зробити робочим' }}
+            </button>
+            <button v-if="override" class="btn btn-ghost btn-sm" @click="clearOverride">Повернути як було</button>
+          </div>
+          <div class="field">
+            <label for="override-note">Коментар (напр. «підміняю Ігоря»)</label>
+            <input
+              id="override-note"
+              class="input"
+              v-model="overrideNote"
+              placeholder="необовʼязково"
+              @change="saveOverrideNote"
+            />
+          </div>
+        </section>
+      </div>
+
+      <div class="modal-foot" v-if="effectiveType === 'work'">
+        <div class="total">
+          <span class="total-label">За зміну<span v-if="saving" class="autosave-hint"> · зберігаю…</span></span>
+          <span class="total-value">{{ totalValue }}₴</span>
+        </div>
+        <div class="foot-actions">
+          <button v-if="shift" class="btn btn-danger btn-icon" @click="deleteShift" aria-label="Видалити запис">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6M10 11v6M14 11v6" />
+            </svg>
           </button>
-          <button v-if="override" class="btn btn-ghost btn-sm" @click="clearOverride">Скинути до базового</button>
+          <button class="btn btn-primary" @click="closeModal">Готово</button>
         </div>
-        <div class="field" style="margin-top: var(--space-3)">
-          <label for="override-note">Коментар (напр. «підміняю Ігоря»)</label>
-          <input id="override-note" class="input" v-model="overrideNote" placeholder="необов'язково" />
-        </div>
-      </section>
-
-      <section class="modal-section" v-if="effectiveType === 'work'">
-        <p class="panel-title">Облік години</p>
-        <div class="time-row">
-          <div class="field">
-            <label for="start">Початок</label>
-            <input id="start" class="input" type="time" v-model="startTime" />
-          </div>
-          <div class="field">
-            <label for="end">Кінець</label>
-            <input id="end" class="input" type="time" v-model="endTime" />
-          </div>
-          <div class="field">
-            <label>Разом</label>
-            <div class="hours-readout">{{ computedHours !== null ? computedHours + ' год' : '—' }}</div>
-          </div>
-        </div>
-
-        <div class="tradein-row">
-          <div class="field">
-            <label for="tradein">Трейд-ін <span class="rate-hint">({{ tradeinRate }}₴/шт)</span></label>
-            <div class="counter">
-              <button type="button" class="counter-btn" @click="bump('tradein', -1)" aria-label="Мінус один">−</button>
-              <input
-                id="tradein"
-                class="input counter-input"
-                type="number"
-                min="0"
-                inputmode="numeric"
-                v-model="tradein"
-                @change="autosave"
-              />
-              <button type="button" class="counter-btn counter-btn-plus" @click="bump('tradein', 1)" aria-label="Плюс один">
-                +
-              </button>
-            </div>
-          </div>
-          <div class="field">
-            <label for="nova-poshta">Трейд-ін Нова Пошта <span class="rate-hint">({{ novaPoshtaRate }}₴/шт)</span></label>
-            <div class="counter">
-              <button type="button" class="counter-btn" @click="bump('novaPoshta', -1)" aria-label="Мінус один">−</button>
-              <input
-                id="nova-poshta"
-                class="input counter-input"
-                type="number"
-                min="0"
-                inputmode="numeric"
-                v-model="novaPoshta"
-                @change="autosave"
-              />
-              <button
-                type="button"
-                class="counter-btn counter-btn-plus"
-                @click="bump('novaPoshta', 1)"
-                aria-label="Плюс один"
-              >
-                +
-              </button>
-            </div>
-          </div>
-          <div class="field">
-            <label for="regular">Заявки <span class="rate-hint">({{ regularRate }}₴/шт)</span></label>
-            <div class="counter">
-              <button type="button" class="counter-btn" @click="bump('regular', -1)" aria-label="Мінус один">−</button>
-              <input
-                id="regular"
-                class="input counter-input"
-                type="number"
-                min="0"
-                inputmode="numeric"
-                v-model="regular"
-                @change="autosave"
-              />
-              <button type="button" class="counter-btn counter-btn-plus" @click="bump('regular', 1)" aria-label="Плюс один">
-                +
-              </button>
-            </div>
-          </div>
-        </div>
-        <div class="value-readout" v-if="computedHours || tradein > 0 || novaPoshta > 0 || regular > 0">
-          Разом за зміну: <strong>{{ totalValue }}₴</strong>
-          <span v-if="saving" class="autosave-hint">· зберігаю…</span>
-          <div class="value-breakdown">
-            <span v-if="computedHours">години: {{ hoursValue }}₴</span>
-            <span v-if="tradeinValue || novaPoshtaValue || regularValue">
-              · товар: {{ tradeinValue + novaPoshtaValue + regularValue }}₴
-            </span>
-          </div>
-        </div>
-
-        <div class="field" style="margin-top: var(--space-3)">
-          <label for="shift-note">Нотатка</label>
-          <input id="shift-note" class="input" v-model="shiftNote" placeholder="необов'язково" />
-        </div>
-
-        <div class="modal-actions">
-          <button class="btn btn-primary" :disabled="saving" @click="saveShift">Зберегти зміну</button>
-          <button v-if="shift" class="btn btn-danger" @click="deleteShift">Видалити запис</button>
-        </div>
-      </section>
+      </div>
     </div>
   </div>
 </template>
@@ -280,122 +287,186 @@ watch(
   position: fixed;
   inset: 0;
   background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(2px);
   display: flex;
   align-items: center;
   justify-content: center;
   z-index: 100;
   padding: var(--space-4);
+  animation: fade-in 0.15s var(--ease);
 }
 .modal {
   width: 100%;
-  max-width: 420px;
-  padding: var(--space-5);
+  max-width: 440px;
   max-height: 88vh;
-  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg-1);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+  overflow: hidden;
+}
+.grabber {
+  display: none;
 }
 .modal-head {
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
-  padding-bottom: var(--space-4);
+  gap: var(--space-3);
+  padding: var(--space-4) var(--space-5);
   border-bottom: 1px solid var(--line-soft);
-  margin-bottom: var(--space-4);
+}
+.modal-head-text {
+  min-width: 0;
 }
 .modal-date {
-  font-size: 15px;
-  font-weight: 600;
-  text-transform: capitalize;
+  font-size: 18px;
+  font-weight: 700;
+}
+.modal-date::first-letter {
+  text-transform: uppercase;
 }
 .modal-type {
-  font-size: 12px;
+  font-size: 13px;
   color: var(--ink-2);
   margin-top: 4px;
   display: flex;
   align-items: center;
   gap: 6px;
+  flex-wrap: wrap;
+}
+.status-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--ink-3);
 }
 .modal-type.work {
   color: var(--state-work-text);
 }
+.modal-type.work .status-dot {
+  background: var(--accent);
+}
 .modal-type.rest {
   color: var(--state-rest-text);
 }
-.modal-type.pending,
-.modal-type.unset {
-  color: var(--ink-2);
+.modal-type.rest .status-dot {
+  background: var(--state-rest-text);
 }
 .override-tag {
-  border: 1px dashed var(--line-strong);
-  border-radius: var(--radius-sm);
-  padding: 1px 6px;
-  font-size: 10px;
-  color: var(--ink-1);
+  border-radius: 999px;
+  padding: 1px 8px;
+  font-size: 11px;
+  background: rgba(251, 191, 36, 0.14);
+  color: #fcd34d;
+}
+.close-btn {
+  margin: -6px -10px 0 0;
+  color: var(--ink-2);
+  font-size: 16px;
+}
+
+.modal-body {
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: var(--space-4) var(--space-5);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
 }
 .modal-section {
-  margin-bottom: var(--space-5);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+.modal-section.swap {
+  padding-top: var(--space-4);
+  border-top: 1px solid var(--line-soft);
+}
+.modal-section.swap .panel-title {
+  margin: 0;
 }
 .swap-row {
   display: flex;
   gap: var(--space-2);
   flex-wrap: wrap;
 }
+
 .time-row {
   display: grid;
-  grid-template-columns: 1fr 1fr auto;
+  grid-template-columns: 1fr 1fr;
   gap: var(--space-3);
-  align-items: end;
+}
+.now-btn {
+  align-self: flex-start;
+  background: none;
+  border: none;
+  padding: 2px 0;
+  font-size: 12px;
+  color: var(--accent);
+  cursor: pointer;
 }
 .hours-readout {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
   font-family: var(--font-num);
   font-size: 14px;
   font-weight: 600;
-  padding: 9px 11px;
+  padding: 10px 12px;
   background: var(--bg-2);
-  border: 1px solid var(--line);
   border-radius: var(--radius-sm);
-  white-space: nowrap;
 }
-.tradein-row {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+.hours-money {
+  color: var(--ink-2);
+  font-weight: 500;
+}
+
+.counters {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  background: var(--bg-2);
+  border-radius: var(--radius-sm);
+  padding: 4px 12px;
+}
+.counter-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
   gap: var(--space-3);
-  margin-top: var(--space-3);
+  padding: 6px 0;
+}
+.counter-row + .counter-row {
+  border-top: 1px solid var(--line-soft);
+}
+.counter-label {
+  display: flex;
+  flex-direction: column;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--ink-0);
+  min-width: 0;
 }
 .rate-hint {
   color: var(--ink-3);
-  font-weight: 400;
-}
-.value-readout {
-  margin-top: var(--space-2);
-  font-size: 13px;
-  color: var(--ink-1);
-}
-.value-readout strong {
-  font-family: var(--font-num);
-  color: var(--state-work-text);
-}
-.value-breakdown {
-  margin-top: 3px;
-  font-size: 11.5px;
-  color: var(--ink-3);
-  font-family: var(--font-num);
-}
-.autosave-hint {
-  color: var(--ink-3);
   font-size: 12px;
+  font-weight: 400;
 }
 .counter {
   display: flex;
-  align-items: stretch;
+  align-items: center;
   gap: 6px;
+  flex: 0 0 auto;
 }
 .counter-btn {
-  flex: 0 0 44px;
-  width: 44px;
-  height: 44px;
-  border-radius: var(--radius-sm);
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
   border: 1px solid var(--line-strong);
-  background: var(--bg-2);
+  background: var(--bg-3);
   color: var(--ink-0);
   font-size: 20px;
   font-weight: 600;
@@ -404,31 +475,25 @@ watch(
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: background 0.12s var(--ease), border-color 0.12s var(--ease), transform 0.08s var(--ease);
+  transition: background 0.12s var(--ease), transform 0.08s var(--ease);
 }
 .counter-btn:active {
-  transform: scale(0.94);
-}
-.counter-btn:hover {
-  background: var(--bg-3);
-  border-color: var(--ink-2);
+  transform: scale(0.9);
 }
 .counter-btn-plus {
-  background: var(--state-work-bg);
-  border-color: var(--state-work-border);
-  color: var(--state-work-text);
-}
-.counter-btn-plus:hover {
-  background: var(--state-work-border);
-  color: var(--bg-0);
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--accent-ink);
 }
 .counter-input {
-  flex: 1;
-  min-width: 0;
+  width: 56px;
+  min-height: 42px;
   text-align: center;
   font-size: 18px;
   font-weight: 700;
-  padding: 9px 4px;
+  padding: 6px 2px;
+  background: transparent;
+  border-color: transparent;
 }
 /* Hide native number spinners — the +/- buttons replace them */
 .counter-input::-webkit-outer-spin-button,
@@ -439,43 +504,89 @@ watch(
 .counter-input[type='number'] {
   -moz-appearance: textfield;
 }
-.modal-actions {
+
+.modal-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-5);
+  border-top: 1px solid var(--line-soft);
+  background: var(--bg-1);
+}
+.total {
+  display: flex;
+  flex-direction: column;
+}
+.total-label {
+  font-size: 12px;
+  color: var(--ink-2);
+}
+.total-value {
+  font-family: var(--font-num);
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--accent);
+}
+.autosave-hint {
+  color: var(--ink-3);
+}
+.foot-actions {
   display: flex;
   gap: var(--space-2);
-  margin-top: var(--space-4);
+}
+.foot-actions .btn-primary {
+  min-width: 110px;
 }
 
-@media (max-width: 480px) {
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+}
+@keyframes sheet-up {
+  from {
+    transform: translateY(100%);
+  }
+}
+
+@media (max-width: 560px) {
   .overlay {
     align-items: flex-end;
     padding: 0;
   }
   .modal {
     max-width: 100%;
-    border-radius: var(--radius-md) var(--radius-md) 0 0;
-    max-height: 92vh;
+    max-height: 92dvh;
+    border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+    border-bottom: none;
+    animation: sheet-up 0.25s var(--ease);
+  }
+  .grabber {
+    display: block;
+    width: 40px;
+    height: 5px;
+    border-radius: 999px;
+    background: var(--line-strong);
+    margin: 8px auto 0;
+    flex: 0 0 auto;
+    cursor: pointer;
+  }
+  .modal-head {
+    padding: var(--space-3) var(--space-4);
+  }
+  .modal-body {
     padding: var(--space-4);
   }
-  .time-row {
-    grid-template-columns: 1fr 1fr;
-    row-gap: var(--space-3);
+  .modal-foot {
+    padding: var(--space-3) var(--space-4) calc(var(--space-3) + var(--safe-bottom));
   }
-  .time-row .field:nth-child(3) {
-    grid-column: 1 / -1;
+  .swap-row .btn {
+    flex: 1;
   }
-  .hours-readout {
-    width: 100%;
-    text-align: center;
-  }
-  .swap-row {
-    flex-direction: column;
-    align-items: stretch;
-  }
-  .tradein-row {
-    grid-template-columns: 1fr;
-  }
-  .modal-actions {
-    flex-direction: column;
+  .counter-btn {
+    width: 46px;
+    height: 46px;
   }
 }
 </style>
