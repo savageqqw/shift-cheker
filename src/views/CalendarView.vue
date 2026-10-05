@@ -196,7 +196,12 @@ const money = (n) => Math.round(n).toLocaleString('uk-UA');
       <button class="btn btn-ghost btn-icon" @click="shiftMonth(-1)" aria-label="Попередній місяць">‹</button>
       <div class="month-label">{{ monthLabel }}</div>
       <button class="btn btn-ghost btn-icon" @click="shiftMonth(1)" aria-label="Наступний місяць">›</button>
-      <button class="btn btn-sm today-btn" :disabled="isCurrentMonth" @click="goToday">Сьогодні</button>
+      <button v-if="!isCurrentMonth" class="btn btn-sm today-btn" @click="goToday" aria-label="До поточного місяця">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M3 12a9 9 0 1 0 3-6.7M3 4v5h5" />
+        </svg>
+        <span class="today-text">Сьогодні</span>
+      </button>
     </div>
 
     <div v-if="!schedule.settings" class="empty-hint card">Завантаження графіка…</div>
@@ -343,13 +348,13 @@ const money = (n) => Math.round(n).toLocaleString('uk-UA');
 .calendar-layout {
   display: flex;
   flex-direction: column;
-  gap: var(--space-4);
+  gap: var(--space-5);
   min-width: 0;
 }
 .calendar-main {
   display: flex;
   flex-direction: column;
-  gap: var(--space-4);
+  gap: var(--space-5);
   min-width: 0;
 }
 .calendar-sidebar {
@@ -366,22 +371,33 @@ const money = (n) => Math.round(n).toLocaleString('uk-UA');
     flex: 1;
   }
   .calendar-sidebar {
-    flex: 0 0 290px;
+    flex: 0 0 300px;
     position: sticky;
-    top: 84px;
+    top: 92px;
   }
 }
 
 .calendar-toolbar {
   display: flex;
   align-items: center;
-  gap: var(--space-1);
+  gap: var(--space-2);
+}
+.calendar-toolbar > .btn-ghost {
+  background: var(--card);
+  border-color: var(--ink);
+  box-shadow: var(--shadow-sm);
+  font-size: 22px;
+  font-weight: 800;
+}
+.calendar-toolbar > .btn-ghost:active {
+  transform: translate(2px, 2px);
+  box-shadow: none;
 }
 .month-label {
-  font-size: 20px;
-  font-weight: 700;
-  letter-spacing: -0.01em;
-  text-transform: capitalize;
+  font-family: var(--font-display);
+  font-size: 22px;
+  font-weight: 800;
+  text-transform: uppercase;
   white-space: nowrap;
   min-width: 0;
   overflow: hidden;
@@ -392,8 +408,9 @@ const money = (n) => Math.round(n).toLocaleString('uk-UA');
   margin-left: auto;
 }
 
-/* Month summary */
+/* Month summary: the loud yellow block */
 .summary {
+  background: var(--yellow);
   padding: var(--space-4) var(--space-5);
   display: flex;
   flex-direction: column;
@@ -407,45 +424,45 @@ const money = (n) => Math.round(n).toLocaleString('uk-UA');
 }
 .summary-label {
   font-size: 12px;
-  color: var(--ink-2);
-  margin-bottom: 2px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin-bottom: 4px;
 }
 .summary-hours,
 .summary-value {
-  font-family: var(--font-num);
-  font-size: 24px;
-  font-weight: 700;
+  font-family: var(--font-display);
+  font-size: 26px;
+  font-weight: 800;
   white-space: nowrap;
+  line-height: 1.05;
 }
 .summary-of {
-  font-size: 14px;
-  font-weight: 500;
-  color: var(--ink-2);
+  font-family: var(--font-ui);
+  font-size: 15px;
+  font-weight: 700;
 }
 .summary-money {
   text-align: right;
 }
-.summary-value {
-  color: var(--accent);
-}
 .goal-bar {
-  height: 8px;
+  height: 16px;
   border-radius: 999px;
-  background: var(--bg-3);
+  background: var(--card);
+  border: var(--bw-sm) solid var(--ink);
   overflow: hidden;
 }
 .goal-bar-fill {
   height: 100%;
-  background: var(--accent);
-  border-radius: 999px;
+  background: repeating-linear-gradient(-45deg, var(--ink) 0 6px, var(--teal) 6px 12px);
   transition: width 0.4s var(--ease);
 }
 .summary-foot {
   display: flex;
   flex-wrap: wrap;
   gap: 4px 14px;
-  font-size: 12px;
-  color: var(--ink-3);
+  font-size: 13px;
+  font-weight: 700;
 }
 
 /* Calendar grid */
@@ -456,94 +473,89 @@ const money = (n) => Math.round(n).toLocaleString('uk-UA');
 .grid {
   display: grid;
   grid-template-columns: repeat(7, minmax(0, 1fr));
-  gap: 6px;
+  gap: 7px;
 }
 .weekday-row {
-  margin-bottom: 8px;
+  margin-bottom: 10px;
 }
 .weekday-row span {
-  font-size: 11px;
-  font-weight: 600;
-  color: var(--ink-3);
+  font-family: var(--font-display);
+  font-size: 12px;
+  font-weight: 700;
   text-align: center;
   text-transform: uppercase;
-  letter-spacing: 0.04em;
 }
 
 .cell {
   min-width: 0;
   aspect-ratio: 1 / 1;
   overflow: hidden;
-  border-radius: 10px;
-  border: 1px solid var(--line-soft);
-  background: var(--bg-2);
-  color: var(--ink-2);
+  border-radius: var(--radius-sm);
+  border: var(--bw-sm) solid var(--ink);
+  box-shadow: var(--shadow-sm);
+  background: var(--day-pending);
+  color: var(--ink);
   cursor: pointer;
   display: flex;
   flex-direction: column;
   align-items: flex-start;
   justify-content: space-between;
-  padding: 8px;
+  padding: 7px;
   font: inherit;
-  font-family: var(--font-num);
   text-align: left;
   position: relative;
   user-select: none;
-  transition: border-color 0.15s var(--ease), background 0.15s var(--ease), transform 0.1s var(--ease);
-}
-.cell:hover {
-  border-color: var(--line-strong);
+  transition: transform var(--press) var(--ease), box-shadow var(--press) var(--ease);
 }
 .cell:active {
-  transform: scale(0.95);
+  transform: translate(2px, 2px);
+  box-shadow: none;
 }
 .cell.blank {
   visibility: hidden;
-  cursor: default;
 }
 .cell.work {
-  background: var(--state-work-bg);
-  color: var(--state-work-text);
-  border-color: var(--state-work-border);
+  background: var(--day-work);
 }
 .cell.rest {
-  background: var(--state-rest-bg);
-  color: var(--state-rest-text);
-  border-color: transparent;
+  background: var(--day-rest);
 }
-.cell.unset .cell-day {
-  color: var(--ink-0);
-}
+/* Past work day with no hours: hatched, reads as "forgot to log" */
 .cell.past.unset {
-  border-style: dashed;
-  border-color: var(--line);
-}
-.cell.today {
-  box-shadow: 0 0 0 2px var(--surface-today-ring);
+  background: repeating-linear-gradient(-45deg, var(--card) 0 5px, var(--sunk) 5px 10px);
 }
 
 .cell-day {
-  font-size: 14px;
-  font-weight: 700;
+  font-family: var(--font-display);
+  font-size: 15px;
+  font-weight: 800;
   line-height: 1;
 }
-.cell.rest .cell-day {
-  color: var(--state-rest-text);
+.cell.today {
+  border-width: var(--bw);
+  box-shadow: 3px 3px 0 var(--ink);
 }
-.cell.work .cell-day {
-  color: var(--ink-0);
+.cell.today .cell-day {
+  background: var(--ink);
+  color: var(--yellow);
+  padding: 3px 5px;
+  border-radius: 5px;
+  margin: -3px 0 0 -3px;
 }
+/* swap marker: small yellow diamond with a black outline */
 .cell-marker {
   position: absolute;
-  top: 7px;
-  right: 7px;
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background: #fbbf24;
+  top: 6px;
+  right: 6px;
+  width: 10px;
+  height: 10px;
+  background: var(--day-swap);
+  border: var(--bw-sm) solid var(--ink);
+  transform: rotate(45deg);
 }
 .cell-readout {
-  font-size: 10.5px;
+  font-size: 11px;
+  font-weight: 800;
   display: flex;
   flex-direction: column;
   gap: 1px;
@@ -556,47 +568,44 @@ const money = (n) => Math.round(n).toLocaleString('uk-UA');
   overflow: hidden;
   text-overflow: ellipsis;
 }
-.cell-value {
-  font-weight: 700;
-}
 
 .week-summary {
   grid-column: 1 / -1;
   display: flex;
-  align-items: baseline;
+  align-items: center;
   justify-content: space-between;
   gap: var(--space-2);
-  padding: 2px 4px 8px;
-  font-family: var(--font-num);
-  font-size: 11px;
-  color: var(--ink-2);
+  padding: 4px 2px 10px;
+  font-size: 12px;
+  font-weight: 800;
 }
 .week-summary-label {
   color: var(--ink-3);
-  font-family: var(--font-ui);
-  font-size: 11px;
+  font-weight: 700;
   white-space: nowrap;
 }
 .week-summary-values {
   display: flex;
+  align-items: center;
   gap: 8px;
-  color: var(--ink-1);
   white-space: nowrap;
 }
 .week-summary-value {
-  color: var(--accent);
-  font-weight: 600;
+  background: var(--yellow);
+  border: var(--bw-sm) solid var(--ink);
+  border-radius: 4px;
+  padding: 0 5px;
 }
 .week-summary.empty {
-  opacity: 0.45;
+  opacity: 0.5;
 }
 
 .legend {
   display: flex;
   flex-wrap: wrap;
-  gap: 6px 16px;
-  font-size: 12px;
-  color: var(--ink-2);
+  gap: 8px 16px;
+  font-size: 13px;
+  font-weight: 700;
   margin-top: var(--space-2);
 }
 .legend span {
@@ -605,27 +614,25 @@ const money = (n) => Math.round(n).toLocaleString('uk-UA');
   gap: 6px;
 }
 .swatch {
-  width: 12px;
-  height: 12px;
+  width: 14px;
+  height: 14px;
   border-radius: 4px;
   display: inline-block;
-  border: 1px solid var(--line);
-  background: var(--bg-2);
+  border: var(--bw-sm) solid var(--ink);
+  background: var(--day-pending);
 }
 .swatch.work {
-  background: var(--state-work-bg);
-  border-color: var(--state-work-border);
+  background: var(--day-work);
 }
 .swatch.rest {
-  background: var(--state-rest-bg);
-  border-color: var(--state-rest-border);
+  background: var(--day-rest);
 }
 .swatch.marker {
-  width: 7px;
-  height: 7px;
-  border: none;
-  border-radius: 50%;
-  background: #fbbf24;
+  width: 10px;
+  height: 10px;
+  border-radius: 0;
+  background: var(--day-swap);
+  transform: rotate(45deg);
 }
 
 /* Sidebar stats */
@@ -637,89 +644,100 @@ const money = (n) => Math.round(n).toLocaleString('uk-UA');
   align-items: baseline;
   justify-content: space-between;
   gap: var(--space-2);
-  font-family: var(--font-num);
-  font-size: 13px;
-  color: var(--ink-0);
-  padding: 4px 0;
+  font-size: 14px;
+  font-weight: 800;
+  padding: 5px 0;
 }
 .stats-line > span:first-child {
-  font-family: var(--font-ui);
+  font-weight: 600;
   color: var(--ink-2);
   white-space: nowrap;
 }
 .stats-money {
   color: var(--ink-3);
+  font-weight: 700;
   margin-left: 6px;
 }
 .stats-grand-total {
-  margin-top: 6px;
-  padding-top: 10px;
-  border-top: 1px solid var(--line);
-  font-weight: 700;
-  font-size: 15px;
+  align-items: center;
+  margin-top: 8px;
+  padding: 10px 12px;
+  background: var(--yellow);
+  border: var(--bw-sm) solid var(--ink);
+  border-radius: var(--radius-sm);
+  font-family: var(--font-display);
+  font-size: 16px;
 }
 .stats-grand-total > span:first-child {
-  color: var(--ink-0);
-}
-.stats-grand-total > span:last-child {
-  color: var(--accent);
+  font-family: var(--font-ui);
+  font-weight: 800;
+  color: var(--ink);
 }
 .weeks-details {
   margin-top: var(--space-3);
-  border-top: 1px solid var(--line-soft);
-  padding-top: var(--space-2);
 }
 .weeks-details summary {
   cursor: pointer;
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--ink-1);
-  padding: 8px 0;
+  font-size: 14px;
+  font-weight: 800;
+  padding: 10px 12px;
   list-style: none;
   display: flex;
   justify-content: space-between;
+  border: var(--bw-sm) solid var(--ink);
+  border-radius: var(--radius-sm);
+  background: var(--sunk);
 }
 .weeks-details summary::-webkit-details-marker {
   display: none;
 }
 .weeks-details summary::after {
-  content: '▾';
-  color: var(--ink-3);
-  transition: transform 0.2s var(--ease);
+  content: '+';
+  font-family: var(--font-display);
 }
 .weeks-details[open] summary::after {
-  transform: rotate(180deg);
+  content: '−';
 }
 .stats-week {
   padding: 10px 0;
-  border-top: 1px solid var(--line-soft);
+  border-bottom: var(--bw-sm) dashed var(--ink);
+}
+.stats-week:last-child {
+  border-bottom: none;
 }
 .stats-week-header {
   display: flex;
   justify-content: space-between;
-  font-size: 12px;
-  font-weight: 600;
-  color: var(--ink-1);
+  font-size: 13px;
+  font-weight: 800;
   margin-bottom: 4px;
 }
-.stats-week-total {
-  font-family: var(--font-num);
-  color: var(--accent);
-}
 .stats-week .stats-line {
-  font-size: 12px;
+  font-size: 13px;
   padding: 2px 0;
 }
 
 .empty-hint {
   padding: var(--space-5);
-  color: var(--ink-2);
+  font-weight: 700;
   text-align: center;
 }
 
 @media (max-width: 640px) {
   .month-label {
-    font-size: 18px;
+    font-size: 16px;
+    flex: 1;
+    text-align: center;
+  }
+  .today-btn {
+    order: 3;
+    width: 44px;
+    min-height: 44px;
+    padding: 0;
+    margin-left: 0;
+  }
+  .today-text {
+    display: none;
   }
   .summary {
     padding: var(--space-4);
@@ -733,11 +751,14 @@ const money = (n) => Math.round(n).toLocaleString('uk-UA');
   }
   .weekday-row,
   .grid {
-    gap: 4px;
+    gap: 5px;
+  }
+  .weekday-row span {
+    font-size: 10px;
   }
   .cell {
     padding: 5px;
-    border-radius: 8px;
+    border-radius: 6px;
     aspect-ratio: auto;
     min-height: 54px;
   }
@@ -749,13 +770,11 @@ const money = (n) => Math.round(n).toLocaleString('uk-UA');
   .cell-value {
     display: none;
   }
-  .cell-readout {
-    font-size: 10.5px;
-    font-weight: 600;
-  }
   .cell-marker {
     top: 5px;
     right: 5px;
+    width: 8px;
+    height: 8px;
   }
   .stats-card {
     padding: var(--space-4);
@@ -771,7 +790,7 @@ const money = (n) => Math.round(n).toLocaleString('uk-UA');
     font-size: 12px;
   }
   .cell-readout {
-    font-size: 9.5px;
+    font-size: 10px;
   }
   .summary-hours,
   .summary-value {

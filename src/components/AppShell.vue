@@ -35,10 +35,7 @@ function logout() {
 <template>
   <div class="shell">
     <header class="shell-header">
-      <div class="brand">
-        <span class="brand-mark">◆</span>
-        <span class="brand-name">Shiftly</span>
-      </div>
+      <div class="brand">Shiftly</div>
 
       <nav class="shell-nav">
         <router-link v-for="t in tabs" :key="t.to" :to="t.to" exact-active-class="active">{{ t.label }}</router-link>
@@ -58,7 +55,7 @@ function logout() {
 
     <nav class="tabbar" aria-label="Навігація">
       <router-link v-for="t in tabs" :key="t.to" :to="t.to" exact-active-class="active" class="tab">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
           <path :d="t.icon" />
         </svg>
         <span>{{ t.label }}</span>
@@ -78,28 +75,26 @@ function logout() {
 .shell-header {
   display: flex;
   align-items: center;
-  gap: var(--space-6);
-  padding: 14px var(--space-6);
-  border-bottom: 1px solid var(--line-soft);
-  background: rgba(11, 12, 14, 0.85);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
+  gap: var(--space-5);
+  padding: 12px var(--space-6);
+  border-bottom: var(--bw) solid var(--ink);
+  background: var(--paper);
   position: sticky;
   top: 0;
   z-index: 50;
 }
 
 .brand {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-weight: 700;
-  font-size: 16px;
-  letter-spacing: -0.01em;
-}
-.brand-mark {
-  color: var(--accent);
-  font-size: 12px;
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 17px;
+  text-transform: uppercase;
+  background: var(--yellow);
+  border: var(--bw) solid var(--ink);
+  box-shadow: var(--shadow-sm);
+  padding: 5px 10px;
+  border-radius: 6px;
+  transform: rotate(-2deg);
 }
 
 .shell-nav {
@@ -108,20 +103,22 @@ function logout() {
   flex: 1;
 }
 .shell-nav a {
-  color: var(--ink-2);
+  color: var(--ink);
   text-decoration: none;
-  font-size: 14px;
-  font-weight: 500;
-  padding: 7px 12px;
+  font-size: 15px;
+  font-weight: 800;
+  padding: 7px 14px;
+  border: var(--bw-sm) solid transparent;
   border-radius: var(--radius-sm);
-  transition: color 0.15s var(--ease), background 0.15s var(--ease);
+  transition: background 0.15s var(--ease);
 }
 .shell-nav a:hover {
-  color: var(--ink-0);
+  background: rgba(17, 17, 17, 0.06);
 }
 .shell-nav a.active {
-  color: var(--ink-0);
-  background: var(--bg-2);
+  background: var(--card);
+  border-color: var(--ink);
+  box-shadow: var(--shadow-sm);
 }
 
 .today-chip {
@@ -130,30 +127,33 @@ function logout() {
   gap: 7px;
   padding: 6px 12px;
   border-radius: 999px;
-  font-size: 12.5px;
-  font-weight: 500;
-  border: 1px solid var(--line);
-  background: var(--bg-1);
-  color: var(--ink-1);
+  font-size: 13px;
+  font-weight: 800;
+  border: var(--bw-sm) solid var(--ink);
+  background: var(--card);
   white-space: nowrap;
 }
+.today-chip.work {
+  background: var(--teal);
+}
+.today-chip.rest {
+  background: var(--coral);
+}
 .today-dot {
-  width: 7px;
-  height: 7px;
+  width: 8px;
+  height: 8px;
   border-radius: 50%;
-  background: var(--ink-3);
+  background: var(--ink);
 }
-.today-chip.work .today-dot {
-  background: var(--accent);
-}
-.today-chip.rest .today-dot {
-  background: var(--state-rest-text);
+
+.logout-btn {
+  font-weight: 700;
 }
 
 .shell-main {
   flex: 1;
   padding: var(--space-6);
-  max-width: 1080px;
+  max-width: 1100px;
   width: 100%;
   margin: 0 auto;
 }
@@ -167,6 +167,9 @@ function logout() {
     gap: var(--space-3);
     padding: calc(10px + var(--safe-top)) var(--space-4) 10px;
   }
+  .brand {
+    font-size: 15px;
+  }
   .shell-nav {
     display: none;
   }
@@ -174,25 +177,24 @@ function logout() {
     margin-left: auto;
   }
   .logout-btn {
-    padding: 6px 10px;
+    padding: 6px 8px;
   }
   .shell-main {
-    padding: var(--space-4) var(--space-3) calc(var(--tabbar-h) + var(--safe-bottom) + var(--space-4));
+    padding: var(--space-4) var(--space-4) calc(var(--tabbar-h) + var(--safe-bottom) + var(--space-5));
   }
 
   .tabbar {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
     position: fixed;
     left: 0;
     right: 0;
     bottom: 0;
     height: calc(var(--tabbar-h) + var(--safe-bottom));
-    padding-bottom: var(--safe-bottom);
-    background: rgba(19, 20, 24, 0.92);
-    backdrop-filter: blur(14px);
-    -webkit-backdrop-filter: blur(14px);
-    border-top: 1px solid var(--line-soft);
+    padding: 8px 12px calc(8px + var(--safe-bottom));
+    background: var(--card);
+    border-top: var(--bw) solid var(--ink);
     z-index: 60;
   }
   .tab {
@@ -200,25 +202,30 @@ function logout() {
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    gap: 4px;
-    color: var(--ink-3);
+    gap: 3px;
+    color: var(--ink);
     text-decoration: none;
     font-size: 11px;
-    font-weight: 500;
-    transition: color 0.15s var(--ease);
+    font-weight: 800;
+    border: var(--bw-sm) solid transparent;
+    border-radius: var(--radius-sm);
+    transition: background 0.15s var(--ease);
   }
   .tab svg {
     width: 22px;
     height: 22px;
   }
   .tab.active {
-    color: var(--accent);
+    background: var(--yellow);
+    border-color: var(--ink);
+    box-shadow: var(--shadow-sm);
   }
 }
 
 @media (max-width: 360px) {
-  .brand-name {
-    display: none;
+  .today-chip {
+    font-size: 12px;
+    padding: 5px 9px;
   }
 }
 </style>

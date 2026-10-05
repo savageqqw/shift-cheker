@@ -186,12 +186,15 @@ onBeforeUnmount(() => {
         <div class="modal-head-text">
           <div class="modal-date">{{ prettyDate }}</div>
           <div class="modal-type" :class="displayStatus">
-            <span class="status-dot"></span>
-            {{ statusText }}
+            <span class="status-text">{{ statusText }}</span>
             <span v-if="override" class="override-tag">заміна</span>
           </div>
         </div>
-        <button class="btn btn-ghost btn-icon close-btn" @click="closeModal" aria-label="Закрити">✕</button>
+        <button class="btn btn-ghost btn-icon close-btn" @click="closeModal" aria-label="Закрити">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" aria-hidden="true">
+            <path d="M6 6l12 12M18 6L6 18" />
+          </svg>
+        </button>
       </div>
 
       <div class="modal-body">
@@ -286,8 +289,7 @@ onBeforeUnmount(() => {
 .overlay {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.6);
-  backdrop-filter: blur(2px);
+  background: rgba(17, 17, 17, 0.55);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -297,14 +299,14 @@ onBeforeUnmount(() => {
 }
 .modal {
   width: 100%;
-  max-width: 440px;
+  max-width: 460px;
   max-height: 88vh;
   display: flex;
   flex-direction: column;
-  background: var(--bg-1);
-  border: 1px solid var(--line);
+  background: var(--paper);
+  border: var(--bw) solid var(--ink);
   border-radius: var(--radius-lg);
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+  box-shadow: var(--shadow-lg);
   overflow: hidden;
 }
 .grabber {
@@ -316,56 +318,54 @@ onBeforeUnmount(() => {
   align-items: flex-start;
   gap: var(--space-3);
   padding: var(--space-4) var(--space-5);
-  border-bottom: 1px solid var(--line-soft);
+  border-bottom: var(--bw) solid var(--ink);
+  background: var(--card);
 }
 .modal-head-text {
   min-width: 0;
 }
 .modal-date {
-  font-size: 18px;
-  font-weight: 700;
+  font-family: var(--font-display);
+  font-size: 19px;
+  font-weight: 800;
+  line-height: 1.2;
 }
 .modal-date::first-letter {
   text-transform: uppercase;
 }
 .modal-type {
-  font-size: 13px;
-  color: var(--ink-2);
-  margin-top: 4px;
+  --chip: var(--card);
+  margin-top: 8px;
   display: flex;
   align-items: center;
   gap: 6px;
   flex-wrap: wrap;
-}
-.status-dot {
-  width: 7px;
-  height: 7px;
-  border-radius: 50%;
-  background: var(--ink-3);
+  font-size: 13px;
+  font-weight: 800;
 }
 .modal-type.work {
-  color: var(--state-work-text);
-}
-.modal-type.work .status-dot {
-  background: var(--accent);
+  --chip: var(--teal);
 }
 .modal-type.rest {
-  color: var(--state-rest-text);
-}
-.modal-type.rest .status-dot {
-  background: var(--state-rest-text);
+  --chip: var(--coral);
 }
 .override-tag {
+  border: var(--bw-sm) solid var(--ink);
   border-radius: 999px;
-  padding: 1px 8px;
-  font-size: 11px;
-  background: rgba(251, 191, 36, 0.14);
-  color: #fcd34d;
+  padding: 2px 9px;
+  font-size: 12px;
+  background: var(--yellow);
+}
+.status-text {
+  border: var(--bw-sm) solid var(--ink);
+  border-radius: 999px;
+  padding: 2px 10px;
+  background: var(--chip);
 }
 .close-btn {
-  margin: -6px -10px 0 0;
-  color: var(--ink-2);
-  font-size: 16px;
+  margin: -4px -6px 0 0;
+  font-size: 18px;
+  font-weight: 800;
 }
 
 .modal-body {
@@ -382,8 +382,10 @@ onBeforeUnmount(() => {
   gap: var(--space-3);
 }
 .modal-section.swap {
-  padding-top: var(--space-4);
-  border-top: 1px solid var(--line-soft);
+  padding: var(--space-4);
+  border: var(--bw-sm) dashed var(--ink);
+  border-radius: var(--radius-md);
+  background: var(--sunk);
 }
 .modal-section.swap .panel-title {
   margin: 0;
@@ -401,59 +403,68 @@ onBeforeUnmount(() => {
 }
 .now-btn {
   align-self: flex-start;
-  background: none;
-  border: none;
-  padding: 2px 0;
+  background: var(--card);
+  border: var(--bw-sm) solid var(--ink);
+  border-radius: 999px;
+  padding: 3px 10px;
+  margin-top: 2px;
   font-size: 12px;
-  color: var(--accent);
+  font-weight: 800;
   cursor: pointer;
+  min-height: 28px;
+}
+.now-btn:active {
+  background: var(--yellow);
 }
 .hours-readout {
   display: flex;
   justify-content: space-between;
-  align-items: baseline;
-  font-family: var(--font-num);
-  font-size: 14px;
-  font-weight: 600;
-  padding: 10px 12px;
-  background: var(--bg-2);
+  align-items: center;
+  gap: var(--space-2);
+  font-size: 15px;
+  font-weight: 800;
+  padding: 10px 14px;
+  background: var(--card);
+  border: var(--bw-sm) solid var(--ink);
   border-radius: var(--radius-sm);
 }
 .hours-money {
-  color: var(--ink-2);
-  font-weight: 500;
+  background: var(--teal);
+  border: var(--bw-sm) solid var(--ink);
+  border-radius: 4px;
+  padding: 0 6px;
 }
 
 .counters {
   display: flex;
   flex-direction: column;
-  gap: 2px;
-  background: var(--bg-2);
-  border-radius: var(--radius-sm);
-  padding: 4px 12px;
+  background: var(--card);
+  border: var(--bw) solid var(--ink);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow);
+  padding: 0 14px;
 }
 .counter-row {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: var(--space-3);
-  padding: 6px 0;
+  padding: 10px 0;
 }
 .counter-row + .counter-row {
-  border-top: 1px solid var(--line-soft);
+  border-top: var(--bw-sm) dashed var(--ink);
 }
 .counter-label {
   display: flex;
   flex-direction: column;
-  font-size: 14px;
-  font-weight: 500;
-  color: var(--ink-0);
+  font-size: 15px;
+  font-weight: 800;
   min-width: 0;
 }
 .rate-hint {
   color: var(--ink-3);
   font-size: 12px;
-  font-weight: 400;
+  font-weight: 700;
 }
 .counter {
   display: flex;
@@ -462,40 +473,44 @@ onBeforeUnmount(() => {
   flex: 0 0 auto;
 }
 .counter-btn {
-  width: 42px;
-  height: 42px;
-  border-radius: 50%;
-  border: 1px solid var(--line-strong);
-  background: var(--bg-3);
-  color: var(--ink-0);
-  font-size: 20px;
-  font-weight: 600;
+  width: 44px;
+  height: 44px;
+  border-radius: var(--radius-sm);
+  border: var(--bw-sm) solid var(--ink);
+  box-shadow: var(--shadow-sm);
+  background: var(--card);
+  font-family: var(--font-display);
+  font-size: 22px;
+  font-weight: 800;
   line-height: 1;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: background 0.12s var(--ease), transform 0.08s var(--ease);
+  transition: transform var(--press) var(--ease), box-shadow var(--press) var(--ease);
 }
 .counter-btn:active {
-  transform: scale(0.9);
+  transform: translate(2px, 2px);
+  box-shadow: none;
 }
 .counter-btn-plus {
-  background: var(--accent);
-  border-color: var(--accent);
-  color: var(--accent-ink);
+  background: var(--yellow);
 }
 .counter-input {
-  width: 56px;
-  min-height: 42px;
+  width: 54px;
+  min-height: 44px;
   text-align: center;
-  font-size: 18px;
-  font-weight: 700;
-  padding: 6px 2px;
+  font-family: var(--font-display);
+  font-size: 20px;
+  font-weight: 800;
+  padding: 4px 2px;
   background: transparent;
   border-color: transparent;
 }
-/* Hide native number spinners — the +/- buttons replace them */
+.counter-input:focus {
+  border-color: var(--ink);
+}
+/* Hide native number spinners; the +/- buttons replace them */
 .counter-input::-webkit-outer-spin-button,
 .counter-input::-webkit-inner-spin-button {
   -webkit-appearance: none;
@@ -511,8 +526,8 @@ onBeforeUnmount(() => {
   justify-content: space-between;
   gap: var(--space-3);
   padding: var(--space-3) var(--space-5);
-  border-top: 1px solid var(--line-soft);
-  background: var(--bg-1);
+  border-top: var(--bw) solid var(--ink);
+  background: var(--yellow);
 }
 .total {
   display: flex;
@@ -520,16 +535,17 @@ onBeforeUnmount(() => {
 }
 .total-label {
   font-size: 12px;
-  color: var(--ink-2);
+  font-weight: 800;
+  text-transform: uppercase;
 }
 .total-value {
-  font-family: var(--font-num);
-  font-size: 20px;
-  font-weight: 700;
-  color: var(--accent);
+  font-family: var(--font-display);
+  font-size: 22px;
+  font-weight: 800;
 }
 .autosave-hint {
-  color: var(--ink-3);
+  font-weight: 600;
+  text-transform: none;
 }
 .foot-actions {
   display: flex;
@@ -537,6 +553,9 @@ onBeforeUnmount(() => {
 }
 .foot-actions .btn-primary {
   min-width: 110px;
+  background: var(--ink);
+  color: var(--yellow);
+  box-shadow: 2px 2px 0 var(--card);
 }
 
 @keyframes fade-in {
@@ -560,20 +579,22 @@ onBeforeUnmount(() => {
     max-height: 92dvh;
     border-radius: var(--radius-lg) var(--radius-lg) 0 0;
     border-bottom: none;
+    box-shadow: none;
     animation: sheet-up 0.25s var(--ease);
   }
   .grabber {
     display: block;
-    width: 40px;
-    height: 5px;
+    width: 44px;
+    height: 6px;
     border-radius: 999px;
-    background: var(--line-strong);
-    margin: 8px auto 0;
+    background: var(--ink);
+    margin: 8px auto;
     flex: 0 0 auto;
     cursor: pointer;
   }
   .modal-head {
-    padding: var(--space-3) var(--space-4);
+    padding: 0 var(--space-4) var(--space-3);
+    border-top: none;
   }
   .modal-body {
     padding: var(--space-4);
@@ -583,10 +604,6 @@ onBeforeUnmount(() => {
   }
   .swap-row .btn {
     flex: 1;
-  }
-  .counter-btn {
-    width: 46px;
-    height: 46px;
   }
 }
 </style>

@@ -28,7 +28,7 @@ async function submit() {
 <template>
   <div class="login-page">
     <form class="login-card card" @submit.prevent="submit">
-      <div class="login-mark">◆</div>
+      <div class="login-mark" aria-hidden="true">S</div>
       <div>
         <h1>Shiftly</h1>
         <p class="login-sub">Графік, години й заробіток</p>
@@ -64,42 +64,50 @@ async function submit() {
   align-items: center;
   justify-content: center;
   padding: var(--space-4);
-  background: radial-gradient(600px 400px at 50% 0%, rgba(74, 222, 128, 0.08), transparent 70%);
 }
 .login-card {
   width: 100%;
-  max-width: 360px;
+  max-width: 380px;
   padding: var(--space-6);
   display: flex;
   flex-direction: column;
   gap: var(--space-4);
   border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg);
 }
 .login-mark {
-  width: 44px;
-  height: 44px;
-  border-radius: 12px;
+  width: 52px;
+  height: 52px;
+  border-radius: var(--radius-sm);
   display: flex;
   align-items: center;
   justify-content: center;
-  background: var(--accent-soft);
-  color: var(--accent);
-  font-size: 18px;
+  background: var(--yellow);
+  border: var(--bw) solid var(--ink);
+  box-shadow: var(--shadow-sm);
+  font-family: var(--font-display);
+  font-size: 26px;
+  font-weight: 800;
+  transform: rotate(-4deg);
 }
 .login-card h1 {
   margin: 0;
-  font-size: 22px;
-  letter-spacing: -0.01em;
+  font-family: var(--font-display);
+  font-size: 28px;
+  font-weight: 800;
+  text-transform: uppercase;
 }
 .login-sub {
-  margin: 4px 0 0;
-  font-size: 14px;
+  margin: 6px 0 0;
+  font-size: 15px;
+  font-weight: 600;
   color: var(--ink-2);
 }
 .login-error {
-  font-size: 13px;
-  color: var(--state-rest-text);
-  background: var(--state-rest-bg);
+  font-size: 14px;
+  font-weight: 700;
+  background: var(--coral);
+  border: var(--bw-sm) solid var(--ink);
   border-radius: var(--radius-sm);
   padding: 10px 12px;
   margin: 0;

@@ -131,15 +131,16 @@ async function save() {
 .settings-page {
   display: flex;
   flex-direction: column;
-  gap: var(--space-4);
-  max-width: 520px;
+  gap: var(--space-5);
+  max-width: 540px;
   margin: 0 auto;
 }
 .panel {
   padding: var(--space-5);
 }
 .panel-hint {
-  font-size: 13.5px;
+  font-size: 14px;
+  font-weight: 600;
   color: var(--ink-2);
   line-height: 1.5;
   margin: 0 0 var(--space-4) 0;
@@ -156,32 +157,38 @@ async function save() {
 .weekday-picker {
   display: grid;
   grid-template-columns: repeat(7, 1fr);
-  gap: 6px;
+  gap: 7px;
 }
 .weekday-chip {
-  height: 46px;
+  height: 48px;
   border-radius: var(--radius-sm);
-  border: 1px solid var(--state-work-border);
-  background: var(--state-work-bg);
-  color: var(--state-work-text);
-  font-size: 14px;
-  font-weight: 600;
+  border: var(--bw-sm) solid var(--ink);
+  box-shadow: var(--shadow-sm);
+  background: var(--card);
+  font-family: var(--font-display);
+  font-size: 13px;
+  font-weight: 800;
   cursor: pointer;
-  transition: background 0.15s var(--ease), border-color 0.15s var(--ease), color 0.15s var(--ease),
-    transform 0.1s var(--ease);
+  transition: transform var(--press) var(--ease), box-shadow var(--press) var(--ease), background 0.15s var(--ease);
 }
-.weekday-chip:active {
-  transform: scale(0.95);
-}
+/* Selected day off looks pressed in */
 .weekday-chip.rest {
-  border-color: var(--state-rest-border);
-  background: var(--state-rest-bg);
-  color: var(--state-rest-text);
+  background: var(--coral);
+  transform: translate(2px, 2px);
+  box-shadow: none;
 }
 
 .save-bar {
   position: sticky;
   bottom: var(--space-4);
+}
+.save-bar .btn {
+  min-height: 52px;
+  font-size: 16px;
+  box-shadow: var(--shadow);
+}
+.save-bar .btn:active:not(:disabled) {
+  transform: translate(4px, 4px);
 }
 
 @media (max-width: 760px) {
@@ -200,9 +207,12 @@ async function save() {
   .row-3 .field:last-child {
     grid-column: 1 / -1;
   }
+  .weekday-picker {
+    gap: 5px;
+  }
   .weekday-chip {
-    height: 44px;
-    font-size: 13px;
+    height: 46px;
+    font-size: 11px;
   }
 }
 </style>

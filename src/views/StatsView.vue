@@ -99,17 +99,17 @@ const itemsValue = computed(() =>
 
       <p class="panel-title group-title">Товар</p>
       <div class="stat-grid" :class="{ loading }">
-        <div class="stat card">
+        <div class="stat card tone-lilac">
           <span class="stat-label">Трейд-ін</span>
           <span class="stat-value">{{ stats.total_tradein }}<span class="stat-unit">шт</span></span>
           <span class="stat-sub">{{ money(stats.tradein_value) }} ₴</span>
         </div>
-        <div class="stat card">
+        <div class="stat card tone-sky">
           <span class="stat-label">Нова Пошта</span>
           <span class="stat-value">{{ stats.total_nova_poshta }}<span class="stat-unit">шт</span></span>
           <span class="stat-sub">{{ money(stats.nova_poshta_value) }} ₴</span>
         </div>
-        <div class="stat card">
+        <div class="stat card tone-pink">
           <span class="stat-label">Заявки</span>
           <span class="stat-value">{{ stats.total_regular }}<span class="stat-unit">шт</span></span>
           <span class="stat-sub">{{ money(stats.regular_value) }} ₴</span>
@@ -132,62 +132,66 @@ const itemsValue = computed(() =>
 .segmented {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
-  gap: 4px;
-  padding: 4px;
-  background: var(--bg-1);
-  border: 1px solid var(--line-soft);
-  border-radius: var(--radius-sm);
+  gap: 6px;
+  padding: 6px;
+  background: var(--card);
+  border: var(--bw) solid var(--ink);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow);
 }
 .segmented button {
-  min-height: 38px;
-  border: none;
-  border-radius: 6px;
+  min-height: 40px;
+  border: var(--bw-sm) solid transparent;
+  border-radius: var(--radius-sm);
   background: transparent;
-  color: var(--ink-2);
   font-size: 14px;
-  font-weight: 600;
+  font-weight: 800;
   cursor: pointer;
-  transition: background 0.15s var(--ease), color 0.15s var(--ease);
+  transition: background 0.15s var(--ease);
 }
 .segmented button.active {
-  background: var(--bg-3);
-  color: var(--ink-0);
+  background: var(--ink);
+  color: var(--yellow);
 }
 
 .hero {
   padding: var(--space-5);
   display: flex;
   flex-direction: column;
-  gap: 6px;
-  background: linear-gradient(135deg, rgba(74, 222, 128, 0.12), rgba(74, 222, 128, 0.02)), var(--bg-1);
-  border-color: rgba(74, 222, 128, 0.2);
+  gap: 8px;
+  background: var(--teal);
 }
 .hero-label {
-  font-size: 13px;
-  color: var(--ink-2);
+  font-size: 12px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
 }
 .hero-value {
-  font-family: var(--font-num);
-  font-size: 36px;
-  font-weight: 700;
-  color: var(--accent);
-  letter-spacing: -0.02em;
+  font-family: var(--font-display);
+  font-size: 40px;
+  font-weight: 800;
+  line-height: 1.05;
 }
 .hero-split {
   display: flex;
   flex-wrap: wrap;
-  gap: 4px 18px;
+  gap: 6px 10px;
   font-size: 13px;
-  color: var(--ink-2);
+  font-weight: 700;
+}
+.hero-split span {
+  background: var(--card);
+  border: var(--bw-sm) solid var(--ink);
+  border-radius: 999px;
+  padding: 3px 10px;
 }
 .hero-split b {
-  font-family: var(--font-num);
-  color: var(--ink-0);
-  font-weight: 600;
+  font-weight: 800;
 }
 
 .group-title {
-  margin: var(--space-2) 0 calc(-1 * var(--space-2));
+  margin: var(--space-3) 0 calc(-1 * var(--space-1));
 }
 
 .stat-grid {
@@ -206,51 +210,67 @@ const itemsValue = computed(() =>
   gap: 6px;
   min-width: 0;
 }
+.tone-lilac {
+  background: var(--lilac);
+}
+.tone-sky {
+  background: var(--sky);
+}
+.tone-pink {
+  background: var(--pink);
+}
 .stat-label {
-  font-size: 12px;
-  color: var(--ink-2);
+  font-size: 13px;
+  font-weight: 800;
 }
 .stat-value {
-  font-family: var(--font-num);
-  font-size: 26px;
-  font-weight: 700;
-  color: var(--ink-0);
+  font-family: var(--font-display);
+  font-size: 28px;
+  font-weight: 800;
+  line-height: 1.1;
 }
 .stat-unit {
+  font-family: var(--font-ui);
   font-size: 13px;
-  font-weight: 500;
-  color: var(--ink-2);
+  font-weight: 700;
   margin-left: 4px;
 }
 .stat-sub {
-  font-family: var(--font-num);
-  font-size: 12.5px;
-  color: var(--state-work-text);
+  align-self: flex-start;
+  font-size: 13px;
+  font-weight: 800;
+  background: var(--card);
+  border: var(--bw-sm) solid var(--ink);
+  border-radius: 4px;
+  padding: 0 6px;
 }
 .empty-hint {
   padding: var(--space-5);
-  color: var(--ink-2);
+  font-weight: 700;
   text-align: center;
 }
 
 @media (max-width: 480px) {
+  .segmented button {
+    font-size: 13px;
+  }
   .hero {
     padding: var(--space-4);
   }
   .hero-value {
-    font-size: 30px;
+    font-size: 32px;
   }
   .stat-grid {
-    gap: var(--space-2);
+    gap: 10px;
   }
   .stat {
     padding: var(--space-3);
   }
   .stat-value {
-    font-size: 20px;
+    font-size: 21px;
   }
   .stat-label {
-    font-size: 11.5px;
+    font-size: 12px;
   }
 }
 </style>

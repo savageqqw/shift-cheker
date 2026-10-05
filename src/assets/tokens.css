@@ -1,44 +1,45 @@
+/* Neubrutalism: flat pop colors, black outlines, hard offset shadows. */
 :root {
-  /* Surfaces — near-black with a faint cool tint */
-  --bg-0: #0b0c0e;
-  --bg-1: #131418;
-  --bg-2: #1a1c21;
-  --bg-3: #23262c;
+  /* Surfaces */
+  --paper: #fff4dc;
+  --card: #ffffff;
+  --sunk: #f6ead0;
 
-  /* Borders */
-  --line-soft: #1f2126;
-  --line: #2a2d34;
-  --line-strong: #3d414a;
+  /* Ink */
+  --ink: #111111;
+  --ink-2: #3f3f3f;
+  --ink-3: #5c5c5c;
 
-  /* Text */
-  --ink-0: #f3f4f6;
-  --ink-1: #c7cad1;
-  --ink-2: #8b909a;
-  --ink-3: #5b606a;
-
-  --surface-today-ring: #f3f4f6;
-
-  /* Accent — used for primary actions, progress and money */
-  --accent: #4ade80;
-  --accent-ink: #06210f;
-  --accent-soft: rgba(74, 222, 128, 0.12);
+  /* Pop colors — always paired with black text */
+  --yellow: #ffd23f;
+  --teal: #4ecdc4;
+  --coral: #ff6b6b;
+  --lilac: #c4b5fd;
+  --sky: #93c5fd;
+  --pink: #f9a8d4;
+  --focus: #2563eb;
 
   /* Day states */
-  --state-work-bg: rgba(74, 222, 128, 0.13);
-  --state-work-border: rgba(74, 222, 128, 0.45);
-  --state-work-text: #86efac;
-  --state-rest-bg: rgba(248, 113, 113, 0.1);
-  --state-rest-border: rgba(248, 113, 113, 0.35);
-  --state-rest-text: #fca5a5;
+  --day-work: var(--teal);
+  --day-rest: var(--coral);
+  --day-pending: var(--card);
+  --day-swap: var(--yellow);
+
+  /* Outline + shadow */
+  --bw: 3px;
+  --bw-sm: 2px;
+  --shadow: 4px 4px 0 var(--ink);
+  --shadow-sm: 2px 2px 0 var(--ink);
+  --shadow-lg: 6px 6px 0 var(--ink);
 
   /* Type */
-  --font-ui: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-  --font-num: 'JetBrains Mono', ui-monospace, SFMono-Regular, monospace;
+  --font-display: 'Unbounded', 'Manrope', system-ui, sans-serif;
+  --font-ui: 'Manrope', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
 
   /* Scale */
   --radius-sm: 8px;
-  --radius-md: 14px;
-  --radius-lg: 20px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
   --space-1: 4px;
   --space-2: 8px;
   --space-3: 12px;
@@ -48,13 +49,15 @@
   --space-7: 48px;
 
   /* Mobile bottom tab bar height (without the home-indicator inset) */
-  --tabbar-h: 64px;
+  --tabbar-h: 70px;
   --safe-bottom: env(safe-area-inset-bottom, 0px);
   --safe-top: env(safe-area-inset-top, 0px);
 
+  /* Press: quick in, slightly slower out */
+  --press: 90ms;
   --ease: cubic-bezier(0.2, 0.8, 0.2, 1);
 
-  color-scheme: dark;
+  color-scheme: light;
 }
 
 * {
@@ -65,9 +68,11 @@ html,
 body {
   margin: 0;
   padding: 0;
-  background: var(--bg-0);
-  color: var(--ink-0);
+  background: var(--paper);
+  color: var(--ink);
   font-family: var(--font-ui);
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
   -webkit-font-smoothing: antialiased;
   -webkit-text-size-adjust: 100%;
 }
@@ -83,6 +88,9 @@ body {
   overflow-x: hidden;
   -webkit-tap-highlight-color: transparent;
   overscroll-behavior-y: none;
+  /* faint dot grid, like graph paper */
+  background-image: radial-gradient(rgba(17, 17, 17, 0.09) 1px, transparent 1px);
+  background-size: 18px 18px;
 }
 
 #app {
@@ -96,21 +104,8 @@ svg {
 }
 
 ::selection {
-  background: var(--ink-0);
-  color: var(--bg-0);
-}
-
-::-webkit-scrollbar {
-  width: 10px;
-  height: 10px;
-}
-::-webkit-scrollbar-track {
-  background: var(--bg-0);
-}
-::-webkit-scrollbar-thumb {
-  background: var(--line-strong);
-  border-radius: 6px;
-  border: 2px solid var(--bg-0);
+  background: var(--yellow);
+  color: var(--ink);
 }
 
 a {
@@ -122,11 +117,12 @@ button {
   appearance: none;
   -webkit-appearance: none;
   touch-action: manipulation;
+  color: inherit;
 }
 
 :focus-visible {
-  outline: 2px solid var(--ink-0);
-  outline-offset: 2px;
+  outline: 3px solid var(--focus);
+  outline-offset: 3px;
 }
 
 @media (prefers-reduced-motion: reduce) {
