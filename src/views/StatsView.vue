@@ -99,17 +99,17 @@ const itemsValue = computed(() =>
 
       <p class="panel-title group-title">Товар</p>
       <div class="stat-grid" :class="{ loading }">
-        <div class="stat card tone-lilac">
+        <div class="stat card">
           <span class="stat-label">Трейд-ін</span>
           <span class="stat-value">{{ stats.total_tradein }}<span class="stat-unit">шт</span></span>
           <span class="stat-sub">{{ money(stats.tradein_value) }} ₴</span>
         </div>
-        <div class="stat card tone-sky">
+        <div class="stat card">
           <span class="stat-label">Нова Пошта</span>
           <span class="stat-value">{{ stats.total_nova_poshta }}<span class="stat-unit">шт</span></span>
           <span class="stat-sub">{{ money(stats.nova_poshta_value) }} ₴</span>
         </div>
-        <div class="stat card tone-pink">
+        <div class="stat card">
           <span class="stat-label">Заявки</span>
           <span class="stat-value">{{ stats.total_regular }}<span class="stat-unit">шт</span></span>
           <span class="stat-sub">{{ money(stats.regular_value) }} ₴</span>
@@ -132,26 +132,28 @@ const itemsValue = computed(() =>
 .segmented {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
-  gap: 6px;
-  padding: 6px;
-  background: var(--card);
-  border: var(--bw) solid var(--ink);
-  border-radius: var(--radius-md);
-  box-shadow: var(--shadow);
+  gap: 4px;
+  padding: 4px;
+  background: var(--glass-1);
+  border: 1px solid var(--glass-border);
+  border-radius: 999px;
+  backdrop-filter: var(--blur);
+  -webkit-backdrop-filter: var(--blur);
 }
 .segmented button {
   min-height: 40px;
-  border: var(--bw-sm) solid transparent;
-  border-radius: var(--radius-sm);
+  border: none;
+  border-radius: 999px;
   background: transparent;
+  color: var(--text-2);
   font-size: 14px;
-  font-weight: 800;
+  font-weight: 700;
   cursor: pointer;
-  transition: background 0.15s var(--ease);
+  transition: background 0.15s var(--ease), color 0.15s var(--ease);
 }
 .segmented button.active {
-  background: var(--ink);
-  color: var(--yellow);
+  background: var(--solid);
+  color: var(--on-solid);
 }
 
 .hero {
@@ -159,39 +161,41 @@ const itemsValue = computed(() =>
   display: flex;
   flex-direction: column;
   gap: 8px;
-  background: var(--teal);
+  background: var(--glass-2);
 }
 .hero-label {
-  font-size: 12px;
-  font-weight: 800;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-2);
 }
 .hero-value {
-  font-family: var(--font-display);
-  font-size: 40px;
+  font-size: 44px;
   font-weight: 800;
+  letter-spacing: -0.03em;
   line-height: 1.05;
 }
 .hero-split {
   display: flex;
   flex-wrap: wrap;
-  gap: 6px 10px;
+  gap: 6px;
+  margin-top: 4px;
   font-size: 13px;
-  font-weight: 700;
+  font-weight: 600;
+  color: var(--text-2);
 }
 .hero-split span {
-  background: var(--card);
-  border: var(--bw-sm) solid var(--ink);
+  background: var(--glass-2);
+  border: 1px solid var(--glass-border);
   border-radius: 999px;
-  padding: 3px 10px;
+  padding: 4px 12px;
 }
 .hero-split b {
+  color: var(--text);
   font-weight: 800;
 }
 
 .group-title {
-  margin: var(--space-3) 0 calc(-1 * var(--space-1));
+  margin: var(--space-3) 0 calc(-1 * var(--space-1)) 4px;
 }
 
 .stat-grid {
@@ -210,43 +214,31 @@ const itemsValue = computed(() =>
   gap: 6px;
   min-width: 0;
 }
-.tone-lilac {
-  background: var(--lilac);
-}
-.tone-sky {
-  background: var(--sky);
-}
-.tone-pink {
-  background: var(--pink);
-}
 .stat-label {
   font-size: 13px;
-  font-weight: 800;
+  font-weight: 600;
+  color: var(--text-2);
 }
 .stat-value {
-  font-family: var(--font-display);
   font-size: 28px;
   font-weight: 800;
+  letter-spacing: -0.02em;
   line-height: 1.1;
 }
 .stat-unit {
-  font-family: var(--font-ui);
   font-size: 13px;
-  font-weight: 700;
+  font-weight: 600;
+  color: var(--text-3);
   margin-left: 4px;
 }
 .stat-sub {
-  align-self: flex-start;
   font-size: 13px;
-  font-weight: 800;
-  background: var(--card);
-  border: var(--bw-sm) solid var(--ink);
-  border-radius: 4px;
-  padding: 0 6px;
+  font-weight: 700;
+  color: var(--text-2);
 }
 .empty-hint {
   padding: var(--space-5);
-  font-weight: 700;
+  color: var(--text-2);
   text-align: center;
 }
 
@@ -258,10 +250,10 @@ const itemsValue = computed(() =>
     padding: var(--space-4);
   }
   .hero-value {
-    font-size: 32px;
+    font-size: 36px;
   }
   .stat-grid {
-    gap: 10px;
+    gap: 8px;
   }
   .stat {
     padding: var(--space-3);

@@ -348,13 +348,13 @@ const money = (n) => Math.round(n).toLocaleString('uk-UA');
 .calendar-layout {
   display: flex;
   flex-direction: column;
-  gap: var(--space-5);
+  gap: var(--space-4);
   min-width: 0;
 }
 .calendar-main {
   display: flex;
   flex-direction: column;
-  gap: var(--space-5);
+  gap: var(--space-4);
   min-width: 0;
 }
 .calendar-sidebar {
@@ -373,7 +373,7 @@ const money = (n) => Math.round(n).toLocaleString('uk-UA');
   .calendar-sidebar {
     flex: 0 0 300px;
     position: sticky;
-    top: 92px;
+    top: 84px;
   }
 }
 
@@ -383,21 +383,17 @@ const money = (n) => Math.round(n).toLocaleString('uk-UA');
   gap: var(--space-2);
 }
 .calendar-toolbar > .btn-ghost {
-  background: var(--card);
-  border-color: var(--ink);
-  box-shadow: var(--shadow-sm);
-  font-size: 22px;
-  font-weight: 800;
-}
-.calendar-toolbar > .btn-ghost:active {
-  transform: translate(2px, 2px);
-  box-shadow: none;
+  background: var(--glass-2);
+  border-color: var(--glass-border);
+  border-radius: 50%;
+  font-size: 20px;
+  font-weight: 700;
 }
 .month-label {
-  font-family: var(--font-display);
-  font-size: 22px;
+  font-size: 24px;
   font-weight: 800;
-  text-transform: uppercase;
+  letter-spacing: -0.02em;
+  text-transform: capitalize;
   white-space: nowrap;
   min-width: 0;
   overflow: hidden;
@@ -406,15 +402,16 @@ const money = (n) => Math.round(n).toLocaleString('uk-UA');
 }
 .today-btn {
   margin-left: auto;
+  border-radius: 999px;
 }
 
-/* Month summary: the loud yellow block */
+/* Month summary */
 .summary {
-  background: var(--yellow);
-  padding: var(--space-4) var(--space-5);
+  padding: var(--space-5);
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 14px;
+  background: var(--glass-2);
 }
 .summary-top {
   display: flex;
@@ -423,38 +420,38 @@ const money = (n) => Math.round(n).toLocaleString('uk-UA');
   gap: var(--space-3);
 }
 .summary-label {
-  font-size: 12px;
-  font-weight: 800;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-2);
   margin-bottom: 4px;
 }
 .summary-hours,
 .summary-value {
-  font-family: var(--font-display);
-  font-size: 26px;
+  font-size: 28px;
   font-weight: 800;
+  letter-spacing: -0.02em;
   white-space: nowrap;
   line-height: 1.05;
 }
 .summary-of {
-  font-family: var(--font-ui);
   font-size: 15px;
-  font-weight: 700;
+  font-weight: 600;
+  color: var(--text-3);
 }
 .summary-money {
   text-align: right;
 }
 .goal-bar {
-  height: 16px;
+  height: 6px;
   border-radius: 999px;
-  background: var(--card);
-  border: var(--bw-sm) solid var(--ink);
+  background: var(--glass-2);
   overflow: hidden;
 }
 .goal-bar-fill {
   height: 100%;
-  background: repeating-linear-gradient(-45deg, var(--ink) 0 6px, var(--teal) 6px 12px);
+  border-radius: 999px;
+  background: var(--solid);
+  box-shadow: 0 0 12px rgba(255, 255, 255, 0.5);
   transition: width 0.4s var(--ease);
 }
 .summary-foot {
@@ -462,7 +459,8 @@ const money = (n) => Math.round(n).toLocaleString('uk-UA');
   flex-wrap: wrap;
   gap: 4px 14px;
   font-size: 13px;
-  font-weight: 700;
+  font-weight: 600;
+  color: var(--text-3);
 }
 
 /* Calendar grid */
@@ -473,17 +471,16 @@ const money = (n) => Math.round(n).toLocaleString('uk-UA');
 .grid {
   display: grid;
   grid-template-columns: repeat(7, minmax(0, 1fr));
-  gap: 7px;
+  gap: 6px;
 }
 .weekday-row {
-  margin-bottom: 10px;
+  margin-bottom: 8px;
 }
 .weekday-row span {
-  font-family: var(--font-display);
   font-size: 12px;
   font-weight: 700;
+  color: var(--text-3);
   text-align: center;
-  text-transform: uppercase;
 }
 
 .cell {
@@ -491,10 +488,9 @@ const money = (n) => Math.round(n).toLocaleString('uk-UA');
   aspect-ratio: 1 / 1;
   overflow: hidden;
   border-radius: var(--radius-sm);
-  border: var(--bw-sm) solid var(--ink);
-  box-shadow: var(--shadow-sm);
-  background: var(--day-pending);
-  color: var(--ink);
+  border: 1px solid var(--glass-border);
+  background: var(--glass-2);
+  color: var(--text);
   cursor: pointer;
   display: flex;
   flex-direction: column;
@@ -505,63 +501,64 @@ const money = (n) => Math.round(n).toLocaleString('uk-UA');
   text-align: left;
   position: relative;
   user-select: none;
-  transition: transform var(--press) var(--ease), box-shadow var(--press) var(--ease);
+  transition: transform var(--press) var(--ease), background 0.15s var(--ease), border-color 0.15s var(--ease);
+}
+.cell:hover {
+  border-color: var(--glass-border-strong);
 }
 .cell:active {
-  transform: translate(2px, 2px);
-  box-shadow: none;
+  transform: scale(0.94);
 }
 .cell.blank {
   visibility: hidden;
 }
+/* Logged work: the brightest thing on the grid */
 .cell.work {
-  background: var(--day-work);
+  background: var(--solid);
+  border-color: var(--solid);
+  color: var(--on-solid);
 }
+/* Day off: recedes */
 .cell.rest {
-  background: var(--day-rest);
+  background: transparent;
+  border-color: transparent;
+  color: var(--text-3);
 }
-/* Past work day with no hours: hatched, reads as "forgot to log" */
+/* Past work day with no hours: dashed, reads as "not logged" */
 .cell.past.unset {
-  background: repeating-linear-gradient(-45deg, var(--card) 0 5px, var(--sunk) 5px 10px);
+  background: var(--glass-1);
+  border-style: dashed;
+  border-color: var(--glass-border-strong);
+}
+.cell.today {
+  box-shadow: 0 0 0 2px var(--bg), 0 0 0 3.5px var(--solid);
 }
 
 .cell-day {
-  font-family: var(--font-display);
   font-size: 15px;
   font-weight: 800;
   line-height: 1;
 }
-.cell.today {
-  border-width: var(--bw);
-  box-shadow: 3px 3px 0 var(--ink);
-}
-.cell.today .cell-day {
-  background: var(--ink);
-  color: var(--yellow);
-  padding: 3px 5px;
-  border-radius: 5px;
-  margin: -3px 0 0 -3px;
-}
-/* swap marker: small yellow diamond with a black outline */
+/* swap marker */
 .cell-marker {
   position: absolute;
-  top: 6px;
-  right: 6px;
-  width: 10px;
-  height: 10px;
-  background: var(--day-swap);
-  border: var(--bw-sm) solid var(--ink);
-  transform: rotate(45deg);
+  top: 7px;
+  right: 7px;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
 }
 .cell-readout {
   font-size: 11px;
-  font-weight: 800;
+  font-weight: 700;
   display: flex;
   flex-direction: column;
   gap: 1px;
   min-width: 0;
   max-width: 100%;
   line-height: 1.2;
+  opacity: 0.8;
 }
 .cell-readout span {
   white-space: nowrap;
@@ -575,37 +572,40 @@ const money = (n) => Math.round(n).toLocaleString('uk-UA');
   align-items: center;
   justify-content: space-between;
   gap: var(--space-2);
-  padding: 4px 2px 10px;
+  padding: 2px 4px 10px;
   font-size: 12px;
-  font-weight: 800;
+  font-weight: 700;
 }
 .week-summary-label {
-  color: var(--ink-3);
-  font-weight: 700;
+  color: var(--text-3);
+  font-weight: 600;
   white-space: nowrap;
 }
 .week-summary-values {
   display: flex;
   align-items: center;
   gap: 8px;
+  color: var(--text-2);
   white-space: nowrap;
 }
 .week-summary-value {
-  background: var(--yellow);
-  border: var(--bw-sm) solid var(--ink);
-  border-radius: 4px;
-  padding: 0 5px;
+  color: var(--text);
+  background: var(--glass-2);
+  border: 1px solid var(--glass-border);
+  border-radius: 999px;
+  padding: 1px 8px;
 }
 .week-summary.empty {
-  opacity: 0.5;
+  opacity: 0.45;
 }
 
 .legend {
   display: flex;
   flex-wrap: wrap;
   gap: 8px 16px;
-  font-size: 13px;
-  font-weight: 700;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-2);
   margin-top: var(--space-2);
 }
 .legend span {
@@ -616,23 +616,26 @@ const money = (n) => Math.round(n).toLocaleString('uk-UA');
 .swatch {
   width: 14px;
   height: 14px;
-  border-radius: 4px;
+  border-radius: 5px;
   display: inline-block;
-  border: var(--bw-sm) solid var(--ink);
-  background: var(--day-pending);
+  border: 1px solid var(--glass-border);
+  background: var(--glass-2);
 }
 .swatch.work {
-  background: var(--day-work);
+  background: var(--solid);
+  border-color: var(--solid);
 }
 .swatch.rest {
-  background: var(--day-rest);
+  background: transparent;
+  border-color: var(--glass-border);
+  border-style: dotted;
 }
 .swatch.marker {
-  width: 10px;
-  height: 10px;
-  border-radius: 0;
-  background: var(--day-swap);
-  transform: rotate(45deg);
+  width: 6px;
+  height: 6px;
+  border: none;
+  border-radius: 50%;
+  background: var(--text);
 }
 
 /* Sidebar stats */
@@ -645,33 +648,33 @@ const money = (n) => Math.round(n).toLocaleString('uk-UA');
   justify-content: space-between;
   gap: var(--space-2);
   font-size: 14px;
-  font-weight: 800;
+  font-weight: 700;
   padding: 5px 0;
 }
 .stats-line > span:first-child {
-  font-weight: 600;
-  color: var(--ink-2);
+  font-weight: 500;
+  color: var(--text-2);
   white-space: nowrap;
 }
 .stats-money {
-  color: var(--ink-3);
-  font-weight: 700;
+  color: var(--text-3);
+  font-weight: 600;
   margin-left: 6px;
 }
 .stats-grand-total {
   align-items: center;
-  margin-top: 8px;
-  padding: 10px 12px;
-  background: var(--yellow);
-  border: var(--bw-sm) solid var(--ink);
+  margin-top: 10px;
+  padding: 12px 14px;
   border-radius: var(--radius-sm);
-  font-family: var(--font-display);
-  font-size: 16px;
+  background: var(--solid);
+  color: var(--on-solid);
+  font-size: 18px;
+  font-weight: 800;
 }
 .stats-grand-total > span:first-child {
-  font-family: var(--font-ui);
-  font-weight: 800;
-  color: var(--ink);
+  color: var(--on-solid);
+  font-size: 14px;
+  font-weight: 700;
 }
 .weeks-details {
   margin-top: var(--space-3);
@@ -679,28 +682,35 @@ const money = (n) => Math.round(n).toLocaleString('uk-UA');
 .weeks-details summary {
   cursor: pointer;
   font-size: 14px;
-  font-weight: 800;
-  padding: 10px 12px;
+  font-weight: 700;
+  padding: 11px 14px;
   list-style: none;
   display: flex;
   justify-content: space-between;
-  border: var(--bw-sm) solid var(--ink);
+  border: 1px solid var(--glass-border);
   border-radius: var(--radius-sm);
-  background: var(--sunk);
+  background: var(--glass-1);
 }
 .weeks-details summary::-webkit-details-marker {
   display: none;
 }
 .weeks-details summary::after {
-  content: '+';
-  font-family: var(--font-display);
+  content: '';
+  width: 8px;
+  height: 8px;
+  margin-top: 3px;
+  border-right: 2px solid var(--text-2);
+  border-bottom: 2px solid var(--text-2);
+  transform: rotate(45deg);
+  transition: transform 0.2s var(--ease);
 }
 .weeks-details[open] summary::after {
-  content: '−';
+  transform: rotate(-135deg);
+  margin-top: 7px;
 }
 .stats-week {
-  padding: 10px 0;
-  border-bottom: var(--bw-sm) dashed var(--ink);
+  padding: 10px 2px;
+  border-bottom: 1px solid var(--glass-border);
 }
 .stats-week:last-child {
   border-bottom: none;
@@ -709,7 +719,7 @@ const money = (n) => Math.round(n).toLocaleString('uk-UA');
   display: flex;
   justify-content: space-between;
   font-size: 13px;
-  font-weight: 800;
+  font-weight: 700;
   margin-bottom: 4px;
 }
 .stats-week .stats-line {
@@ -719,13 +729,13 @@ const money = (n) => Math.round(n).toLocaleString('uk-UA');
 
 .empty-hint {
   padding: var(--space-5);
-  font-weight: 700;
+  color: var(--text-2);
   text-align: center;
 }
 
 @media (max-width: 640px) {
   .month-label {
-    font-size: 16px;
+    font-size: 19px;
     flex: 1;
     text-align: center;
   }
@@ -744,7 +754,7 @@ const money = (n) => Math.round(n).toLocaleString('uk-UA');
   }
   .summary-hours,
   .summary-value {
-    font-size: 21px;
+    font-size: 23px;
   }
   .calendar {
     padding: var(--space-3) 10px;
@@ -754,16 +764,16 @@ const money = (n) => Math.round(n).toLocaleString('uk-UA');
     gap: 5px;
   }
   .weekday-row span {
-    font-size: 10px;
+    font-size: 11px;
   }
   .cell {
-    padding: 5px;
-    border-radius: 6px;
+    padding: 5px 6px;
+    border-radius: 10px;
     aspect-ratio: auto;
     min-height: 54px;
   }
   .cell-day {
-    font-size: 13px;
+    font-size: 14px;
   }
   /* On a phone a cell only fits the hours; money lives in the week row. */
   .cell-items,
@@ -771,10 +781,8 @@ const money = (n) => Math.round(n).toLocaleString('uk-UA');
     display: none;
   }
   .cell-marker {
-    top: 5px;
-    right: 5px;
-    width: 8px;
-    height: 8px;
+    top: 6px;
+    right: 6px;
   }
   .stats-card {
     padding: var(--space-4);
@@ -794,7 +802,7 @@ const money = (n) => Math.round(n).toLocaleString('uk-UA');
   }
   .summary-hours,
   .summary-value {
-    font-size: 18px;
+    font-size: 19px;
   }
 }
 </style>

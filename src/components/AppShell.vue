@@ -77,77 +77,73 @@ function logout() {
   align-items: center;
   gap: var(--space-5);
   padding: 12px var(--space-6);
-  border-bottom: var(--bw) solid var(--ink);
-  background: var(--paper);
+  border-bottom: 1px solid var(--glass-border);
+  background: rgba(9, 9, 11, 0.55);
+  backdrop-filter: var(--blur);
+  -webkit-backdrop-filter: var(--blur);
   position: sticky;
   top: 0;
   z-index: 50;
 }
 
 .brand {
-  font-family: var(--font-display);
   font-weight: 800;
-  font-size: 17px;
-  text-transform: uppercase;
-  background: var(--yellow);
-  border: var(--bw) solid var(--ink);
-  box-shadow: var(--shadow-sm);
-  padding: 5px 10px;
-  border-radius: 6px;
-  transform: rotate(-2deg);
+  font-size: 18px;
+  letter-spacing: -0.02em;
 }
 
 .shell-nav {
   display: flex;
-  gap: var(--space-2);
+  gap: 4px;
   flex: 1;
+  padding: 4px;
+  border-radius: 999px;
+  max-width: max-content;
+  background: var(--glass-1);
+  border: 1px solid var(--glass-border);
 }
 .shell-nav a {
-  color: var(--ink);
+  color: var(--text-2);
   text-decoration: none;
-  font-size: 15px;
-  font-weight: 800;
-  padding: 7px 14px;
-  border: var(--bw-sm) solid transparent;
-  border-radius: var(--radius-sm);
-  transition: background 0.15s var(--ease);
+  font-size: 14px;
+  font-weight: 700;
+  padding: 7px 16px;
+  border-radius: 999px;
+  transition: color 0.15s var(--ease), background 0.15s var(--ease);
 }
 .shell-nav a:hover {
-  background: rgba(17, 17, 17, 0.06);
+  color: var(--text);
 }
 .shell-nav a.active {
-  background: var(--card);
-  border-color: var(--ink);
-  box-shadow: var(--shadow-sm);
+  color: var(--on-solid);
+  background: var(--solid);
 }
 
 .today-chip {
+  margin-left: auto;
   display: inline-flex;
   align-items: center;
-  gap: 7px;
-  padding: 6px 12px;
+  gap: 8px;
+  padding: 7px 13px;
   border-radius: 999px;
   font-size: 13px;
-  font-weight: 800;
-  border: var(--bw-sm) solid var(--ink);
-  background: var(--card);
+  font-weight: 700;
+  border: 1px solid var(--glass-border);
+  background: var(--glass-2);
   white-space: nowrap;
-}
-.today-chip.work {
-  background: var(--teal);
-}
-.today-chip.rest {
-  background: var(--coral);
 }
 .today-dot {
   width: 8px;
   height: 8px;
   border-radius: 50%;
-  background: var(--ink);
+  border: 1.5px solid var(--text);
+}
+.today-chip.work .today-dot {
+  background: var(--text);
 }
 
 .logout-btn {
-  font-weight: 700;
+  color: var(--text-2);
 }
 
 .shell-main {
@@ -167,34 +163,34 @@ function logout() {
     gap: var(--space-3);
     padding: calc(10px + var(--safe-top)) var(--space-4) 10px;
   }
-  .brand {
-    font-size: 15px;
-  }
   .shell-nav {
     display: none;
-  }
-  .today-chip {
-    margin-left: auto;
   }
   .logout-btn {
     padding: 6px 8px;
   }
   .shell-main {
-    padding: var(--space-4) var(--space-4) calc(var(--tabbar-h) + var(--safe-bottom) + var(--space-5));
+    padding: var(--space-4) var(--space-4)
+      calc(var(--tabbar-h) + var(--tabbar-gap) + var(--safe-bottom) + var(--space-5));
   }
 
+  /* Floating frosted pill */
   .tabbar {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
-    gap: 8px;
+    gap: 4px;
     position: fixed;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    height: calc(var(--tabbar-h) + var(--safe-bottom));
-    padding: 8px 12px calc(8px + var(--safe-bottom));
-    background: var(--card);
-    border-top: var(--bw) solid var(--ink);
+    left: var(--tabbar-gap);
+    right: var(--tabbar-gap);
+    bottom: calc(var(--tabbar-gap) + var(--safe-bottom));
+    height: var(--tabbar-h);
+    padding: 6px;
+    border-radius: 999px;
+    background: rgba(28, 28, 32, 0.6);
+    border: 1px solid var(--glass-border);
+    box-shadow: var(--glass-shadow);
+    backdrop-filter: var(--blur);
+    -webkit-backdrop-filter: var(--blur);
     z-index: 60;
   }
   .tab {
@@ -202,30 +198,28 @@ function logout() {
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    gap: 3px;
-    color: var(--ink);
+    gap: 2px;
+    color: var(--text-3);
     text-decoration: none;
     font-size: 11px;
-    font-weight: 800;
-    border: var(--bw-sm) solid transparent;
-    border-radius: var(--radius-sm);
-    transition: background 0.15s var(--ease);
+    font-weight: 700;
+    border-radius: 999px;
+    transition: color 0.15s var(--ease), background 0.15s var(--ease);
   }
   .tab svg {
-    width: 22px;
-    height: 22px;
+    width: 21px;
+    height: 21px;
   }
   .tab.active {
-    background: var(--yellow);
-    border-color: var(--ink);
-    box-shadow: var(--shadow-sm);
+    color: var(--text);
+    background: var(--glass-3);
   }
 }
 
 @media (max-width: 360px) {
   .today-chip {
     font-size: 12px;
-    padding: 5px 9px;
+    padding: 6px 10px;
   }
 }
 </style>

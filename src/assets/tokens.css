@@ -1,45 +1,35 @@
-/* Neubrutalism: flat pop colors, black outlines, hard offset shadows. */
+/* Monochrome glassmorphism: near-black canvas lit by soft white glows,
+   frosted translucent panels, white as the only "color". Day states are
+   told apart by brightness: solid white > glass > dim. */
 :root {
-  /* Surfaces */
-  --paper: #fff4dc;
-  --card: #ffffff;
-  --sunk: #f6ead0;
+  --bg: #09090b;
 
-  /* Ink */
-  --ink: #111111;
-  --ink-2: #3f3f3f;
-  --ink-3: #5c5c5c;
+  /* Glass layers (white over the dark canvas) */
+  --glass-1: rgba(255, 255, 255, 0.05);
+  --glass-2: rgba(255, 255, 255, 0.09);
+  --glass-3: rgba(255, 255, 255, 0.15);
+  --glass-border: rgba(255, 255, 255, 0.13);
+  --glass-border-strong: rgba(255, 255, 255, 0.3);
+  --glass-panel: rgba(22, 22, 26, 0.72);
+  --blur: blur(22px) saturate(140%);
+  --glass-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08), 0 12px 32px rgba(0, 0, 0, 0.35);
 
-  /* Pop colors — always paired with black text */
-  --yellow: #ffd23f;
-  --teal: #4ecdc4;
-  --coral: #ff6b6b;
-  --lilac: #c4b5fd;
-  --sky: #93c5fd;
-  --pink: #f9a8d4;
-  --focus: #2563eb;
+  /* Text */
+  --text: #f5f5f7;
+  --text-2: rgba(245, 245, 247, 0.7);
+  --text-3: rgba(245, 245, 247, 0.5);
 
-  /* Day states */
-  --day-work: var(--teal);
-  --day-rest: var(--coral);
-  --day-pending: var(--card);
-  --day-swap: var(--yellow);
-
-  /* Outline + shadow */
-  --bw: 3px;
-  --bw-sm: 2px;
-  --shadow: 4px 4px 0 var(--ink);
-  --shadow-sm: 2px 2px 0 var(--ink);
-  --shadow-lg: 6px 6px 0 var(--ink);
+  /* Inverse solid (the strongest emphasis) */
+  --solid: #f5f5f7;
+  --on-solid: #0b0b0d;
 
   /* Type */
-  --font-display: 'Unbounded', 'Manrope', system-ui, sans-serif;
   --font-ui: 'Manrope', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
 
   /* Scale */
-  --radius-sm: 8px;
-  --radius-md: 12px;
-  --radius-lg: 16px;
+  --radius-sm: 12px;
+  --radius-md: 20px;
+  --radius-lg: 26px;
   --space-1: 4px;
   --space-2: 8px;
   --space-3: 12px;
@@ -48,16 +38,16 @@
   --space-6: 32px;
   --space-7: 48px;
 
-  /* Mobile bottom tab bar height (without the home-indicator inset) */
-  --tabbar-h: 70px;
+  /* Floating bottom tab bar (height without the home-indicator inset) */
+  --tabbar-h: 64px;
+  --tabbar-gap: 12px;
   --safe-bottom: env(safe-area-inset-bottom, 0px);
   --safe-top: env(safe-area-inset-top, 0px);
 
-  /* Press: quick in, slightly slower out */
-  --press: 90ms;
+  --press: 120ms;
   --ease: cubic-bezier(0.2, 0.8, 0.2, 1);
 
-  color-scheme: light;
+  color-scheme: dark;
 }
 
 * {
@@ -68,8 +58,8 @@ html,
 body {
   margin: 0;
   padding: 0;
-  background: var(--paper);
-  color: var(--ink);
+  background: var(--bg);
+  color: var(--text);
   font-family: var(--font-ui);
   font-weight: 500;
   font-variant-numeric: tabular-nums;
@@ -82,15 +72,31 @@ html {
   width: 100%;
 }
 
+/* body stays transparent so the fixed glow layer below shows through */
+body {
+  background: transparent;
+}
+
 body {
   min-height: 100vh;
   min-height: 100dvh;
   overflow-x: hidden;
   -webkit-tap-highlight-color: transparent;
   overscroll-behavior-y: none;
-  /* faint dot grid, like graph paper */
-  background-image: radial-gradient(rgba(17, 17, 17, 0.09) 1px, transparent 1px);
-  background-size: 18px 18px;
+}
+
+/* Soft white light sources behind the glass; fixed so they don't scroll away */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background:
+    radial-gradient(520px 420px at 12% 6%, rgba(255, 255, 255, 0.16), transparent 70%),
+    radial-gradient(460px 380px at 92% 42%, rgba(255, 255, 255, 0.09), transparent 70%),
+    radial-gradient(520px 420px at 30% 100%, rgba(255, 255, 255, 0.07), transparent 70%),
+    var(--bg);
 }
 
 #app {
@@ -104,8 +110,20 @@ svg {
 }
 
 ::selection {
-  background: var(--yellow);
-  color: var(--ink);
+  background: var(--solid);
+  color: var(--on-solid);
+}
+
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--glass-3);
+  border-radius: 6px;
 }
 
 a {
@@ -121,7 +139,7 @@ button {
 }
 
 :focus-visible {
-  outline: 3px solid var(--focus);
+  outline: 2px solid var(--solid);
   outline-offset: 3px;
 }
 

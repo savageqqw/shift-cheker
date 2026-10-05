@@ -131,7 +131,7 @@ async function save() {
 .settings-page {
   display: flex;
   flex-direction: column;
-  gap: var(--space-5);
+  gap: var(--space-4);
   max-width: 540px;
   margin: 0 auto;
 }
@@ -140,8 +140,7 @@ async function save() {
 }
 .panel-hint {
   font-size: 14px;
-  font-weight: 600;
-  color: var(--ink-2);
+  color: var(--text-2);
   line-height: 1.5;
   margin: 0 0 var(--space-4) 0;
 }
@@ -157,25 +156,27 @@ async function save() {
 .weekday-picker {
   display: grid;
   grid-template-columns: repeat(7, 1fr);
-  gap: 7px;
+  gap: 6px;
 }
 .weekday-chip {
-  height: 48px;
+  height: 46px;
   border-radius: var(--radius-sm);
-  border: var(--bw-sm) solid var(--ink);
-  box-shadow: var(--shadow-sm);
-  background: var(--card);
-  font-family: var(--font-display);
-  font-size: 13px;
-  font-weight: 800;
+  border: 1px solid var(--glass-border);
+  background: var(--glass-2);
+  color: var(--text-2);
+  font-size: 14px;
+  font-weight: 700;
   cursor: pointer;
-  transition: transform var(--press) var(--ease), box-shadow var(--press) var(--ease), background 0.15s var(--ease);
+  transition: background 0.15s var(--ease), color 0.15s var(--ease), transform var(--press) var(--ease);
 }
-/* Selected day off looks pressed in */
+.weekday-chip:active {
+  transform: scale(0.94);
+}
+/* Selected day off */
 .weekday-chip.rest {
-  background: var(--coral);
-  transform: translate(2px, 2px);
-  box-shadow: none;
+  background: var(--solid);
+  border-color: var(--solid);
+  color: var(--on-solid);
 }
 
 .save-bar {
@@ -185,15 +186,13 @@ async function save() {
 .save-bar .btn {
   min-height: 52px;
   font-size: 16px;
-  box-shadow: var(--shadow);
-}
-.save-bar .btn:active:not(:disabled) {
-  transform: translate(4px, 4px);
+  border-radius: 999px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.45);
 }
 
 @media (max-width: 760px) {
   .save-bar {
-    bottom: calc(var(--tabbar-h) + var(--safe-bottom) + var(--space-3));
+    bottom: calc(var(--tabbar-h) + var(--tabbar-gap) + var(--safe-bottom) + var(--space-3));
   }
 }
 
@@ -211,8 +210,8 @@ async function save() {
     gap: 5px;
   }
   .weekday-chip {
-    height: 46px;
-    font-size: 11px;
+    height: 44px;
+    font-size: 13px;
   }
 }
 </style>

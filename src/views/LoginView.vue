@@ -73,44 +73,43 @@ async function submit() {
   flex-direction: column;
   gap: var(--space-4);
   border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-lg);
+  background: var(--glass-2);
 }
 .login-mark {
   width: 52px;
   height: 52px;
-  border-radius: var(--radius-sm);
+  border-radius: 16px;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: var(--yellow);
-  border: var(--bw) solid var(--ink);
-  box-shadow: var(--shadow-sm);
-  font-family: var(--font-display);
-  font-size: 26px;
+  background: var(--solid);
+  color: var(--on-solid);
+  font-size: 24px;
   font-weight: 800;
-  transform: rotate(-4deg);
+  box-shadow: 0 0 30px rgba(255, 255, 255, 0.25);
 }
 .login-card h1 {
   margin: 0;
-  font-family: var(--font-display);
   font-size: 28px;
   font-weight: 800;
-  text-transform: uppercase;
+  letter-spacing: -0.02em;
 }
 .login-sub {
-  margin: 6px 0 0;
+  margin: 4px 0 0;
   font-size: 15px;
-  font-weight: 600;
-  color: var(--ink-2);
+  color: var(--text-2);
 }
 .login-error {
   font-size: 14px;
-  font-weight: 700;
-  background: var(--coral);
-  border: var(--bw-sm) solid var(--ink);
+  font-weight: 600;
+  background: var(--glass-2);
+  border: 1px dashed var(--glass-border-strong);
   border-radius: var(--radius-sm);
-  padding: 10px 12px;
+  padding: 10px 14px;
   margin: 0;
+}
+.login-card .btn-primary {
+  border-radius: 999px;
 }
 
 @media (max-width: 480px) {
