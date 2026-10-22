@@ -170,11 +170,11 @@ function onKey(e) {
 }
 onMounted(() => {
   document.addEventListener('keydown', onKey);
-  document.body.style.overflow = 'hidden';
+  document.documentElement.style.overflow = 'hidden';
 });
 onBeforeUnmount(() => {
   document.removeEventListener('keydown', onKey);
-  document.body.style.overflow = '';
+  document.documentElement.style.overflow = '';
 });
 </script>
 

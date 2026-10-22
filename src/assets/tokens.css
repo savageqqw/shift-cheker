@@ -67,9 +67,13 @@ body {
   -webkit-text-size-adjust: 100%;
 }
 
+/* Horizontal clipping and overscroll live on html only: putting overflow-x on
+   body too turns body into its own scroll container, and with
+   overscroll-behavior on it wheel/touch scrolling never reaches the page. */
 html {
   overflow-x: hidden;
   width: 100%;
+  overscroll-behavior-y: none;
 }
 
 /* body stays transparent so the fixed glow layer below shows through */
@@ -80,9 +84,7 @@ body {
 body {
   min-height: 100vh;
   min-height: 100dvh;
-  overflow-x: hidden;
   -webkit-tap-highlight-color: transparent;
-  overscroll-behavior-y: none;
 }
 
 /* Soft white light sources behind the glass; fixed so they don't scroll away */
