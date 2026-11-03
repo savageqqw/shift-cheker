@@ -11,7 +11,7 @@ const isPublic = computed(() => route.meta.public);
 </script>
 
 <template>
-  <template v-if="isPublic || !auth.isAuthed">
+  <template v-if="isPublic || route.meta.compact || !auth.isAuthed">
     <router-view />
   </template>
   <AppShell v-else>

@@ -20,7 +20,7 @@ export const useShiftsStore = defineStore('shifts', {
       this.loadedRanges.add(key);
     },
 
-    async save(date, { start_time, end_time, tradein_count, nova_poshta_count, regular_count, note }) {
+    async save(date, { start_time, end_time, tradein_count, nova_poshta_count, regular_count, wholesale_count, note }) {
       const toast = useToastStore();
       const prev = this.byDate[date];
       const optimistic = {
@@ -30,6 +30,7 @@ export const useShiftsStore = defineStore('shifts', {
         tradein_count: tradein_count || 0,
         nova_poshta_count: nova_poshta_count || 0,
         regular_count: regular_count || 0,
+        wholesale_count: wholesale_count || 0,
         note: note || null,
         total_hours: prev ? prev.total_hours : null
       };
@@ -42,6 +43,7 @@ export const useShiftsStore = defineStore('shifts', {
           tradein_count,
           nova_poshta_count,
           regular_count,
+          wholesale_count,
           note
         });
         this.byDate = { ...this.byDate, [date]: shift };

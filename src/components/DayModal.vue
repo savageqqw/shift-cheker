@@ -30,6 +30,8 @@ const endTime = ref(shift.value?.end_time || '');
 const tradein = ref(shift.value?.tradein_count ?? 0);
 const novaPoshta = ref(shift.value?.nova_poshta_count ?? 0);
 const regular = ref(shift.value?.regular_count ?? 0);
+const wholesale = ref(shift.value?.wholesale_count ?? 0);
+const wholesaleRate = computed(() => schedule.settings?.wholesale_rate ?? 10);
 const shiftNote = ref(shift.value?.note || '');
 const saving = ref(false);
 
@@ -41,12 +43,13 @@ const tradeinValue = computed(() => (Number(tradein.value) || 0) * tradeinRate.v
 const novaPoshtaValue = computed(() => (Number(novaPoshta.value) || 0) * novaPoshtaRate.value);
 const regularValue = computed(() => (Number(regular.value) || 0) * regularRate.value);
 const hoursValue = computed(() => Math.round((computedHours.value || 0) * hourlyRate.value * 100) / 100);
-const itemsValue = computed(() => tradeinValue.value + novaPoshtaValue.value + regularValue.value);
+const itemsValue = computed(() => tradeinValue.value + novaPoshtaValue.value + regularValue.value + (Number(wholesale.value) || 0) * wholesaleRate.value);
 const totalValue = computed(() => Math.round((itemsValue.value + hoursValue.value) * 100) / 100);
 
 const counters = computed(() => [
   { field: 'tradein', id: 'tradein', label: 'Трейд-ін', rate: tradeinRate.value, model: tradein },
   { field: 'novaPoshta', id: 'nova-poshta', label: 'Нова Пошта', rate: novaPoshtaRate.value, model: novaPoshta },
+  { field: 'wholesale', id: 'wholesale', label: 'Оптові заявки', rate: wholesaleRate.value, model: wholesale },
   { field: 'regular', id: 'regular', label: 'Заявки', rate: regularRate.value, model: regular }
 ]);
 
@@ -91,6 +94,7 @@ async function saveShift() {
       tradein_count: Number(tradein.value) || 0,
       nova_poshta_count: Number(novaPoshta.value) || 0,
       regular_count: Number(regular.value) || 0,
+      wholesale_count: Number(wholesale.value) || 0,
       note: shiftNote.value || null
     });
   } finally {
@@ -140,6 +144,7 @@ async function deleteShift() {
   tradein.value = 0;
   novaPoshta.value = 0;
   regular.value = 0;
+  wholesale.value = 0;
   shiftNote.value = '';
 }
 
@@ -161,6 +166,7 @@ watch(
     tradein.value = shift.value?.tradein_count ?? 0;
     novaPoshta.value = shift.value?.nova_poshta_count ?? 0;
     regular.value = shift.value?.regular_count ?? 0;
+    wholesale.value = shift.value?.wholesale_count ?? 0;
     shiftNote.value = shift.value?.note || '';
   }
 );

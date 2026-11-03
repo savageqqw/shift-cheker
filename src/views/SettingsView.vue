@@ -3,7 +3,11 @@ import { ref, watch, onMounted } from 'vue';
 import { useScheduleStore } from '../stores/schedule.js';
 import { WEEKDAYS, parseRestWeekdays } from '../lib/scheduleEngine.js';
 
+import { parseBonusRules, REQUEST_TYPES } from '../lib/earnings.js';
 const schedule = useScheduleStore();
+const wholesaleRate = ref(10);
+const bonusRules = ref([]);
+const widgetUrl = new URL('/widget', window.location.origin).href;
 
 const restWeekdays = ref([0, 1]);
 const monthlyGoal = ref(200);
@@ -25,6 +29,8 @@ function syncFromStore() {
   tradeinRate.value = schedule.settings.tradein_rate ?? 20;
   novaPoshtaRate.value = schedule.settings.nova_poshta_rate ?? 50;
   regularRate.value = schedule.settings.regular_rate ?? 10;
+  wholesaleRate.value = schedule.settings.wholesale_rate ?? 10;
+  bonusRules.value = parseBonusRules(schedule.settings.bonus_rules);
   hourlyRate.value = schedule.settings.hourly_rate ?? 95;
 }
 
@@ -46,6 +52,8 @@ async function save() {
       tradein_rate: Number(tradeinRate.value),
       nova_poshta_rate: Number(novaPoshtaRate.value),
       regular_rate: Number(regularRate.value),
+      wholesale_rate: Number(wholesaleRate.value),
+      bonus_rules: bonusRules.value,
       hourly_rate: Number(hourlyRate.value)
     });
   } finally {
@@ -119,6 +127,23 @@ async function save() {
       </div>
     </section>
 
+    <section class="card panel">
+      <p class="panel-title">Оптові заявки</p>
+      <div class="field"><label for="wholesale-rate">₴ за заявку</label><input id="wholesale-rate" class="input" type="number" min="0" step="0.01" v-model.number="wholesaleRate" required /></div>
+    </section>
+    <section class="card panel">
+      <p class="panel-title">Бонуси за місяць</p>
+      <p class="panel-hint">Кожен бонус нараховується один раз за місяць після досягнення порога. Обрані типи заявок підсумовуються. Вкажи суму бонусу; 0 ₴ означає лише відстеження цілі. Зміни правил і ставок перераховують також минулі місяці.</p>
+      <fieldset v-for="(rule, i) in bonusRules" :key="i" class="bonus-rule">
+        <legend>Бонус {{ i + 1 }}</legend>
+        <div class="field"><label :for="'bonus-name-'+i">Назва</label><input :id="'bonus-name-'+i" class="input" v-model="rule.name" maxlength="100" required /></div>
+        <div class="row"><div class="field"><label :for="'bonus-threshold-'+i">Поріг, заявок</label><input :id="'bonus-threshold-'+i" class="input" type="number" min="1" step="1" v-model.number="rule.threshold" required /></div><div class="field"><label :for="'bonus-amount-'+i">Бонус, ₴</label><input :id="'bonus-amount-'+i" class="input" type="number" min="0" step="0.01" v-model.number="rule.amount" required /></div></div>
+        <label v-for="(label, type) in REQUEST_TYPES" :key="type" class="bonus-type"><input type="checkbox" :value="type" v-model="rule.types" /> {{ label }}</label>
+        <button type="button" class="btn btn-ghost" @click="bonusRules.splice(i, 1)">Видалити бонус</button>
+      </fieldset>
+      <button type="button" class="btn" @click="bonusRules.push({ name: 'Новий бонус', threshold: 500, amount: 0, types: ['tradein', 'regular'] })">+ Додати бонус</button>
+    </section>
+    <section class="card panel"><p class="panel-title">Віджет Vivaldi</p><p class="panel-hint">Додай цю адресу як віджет вебсторінки. Використовується твій вхід у Shiftly в цьому браузері.</p><a :href="widgetUrl" target="_blank" rel="noopener">{{ widgetUrl }}</a></section>
     <div class="save-bar">
       <button class="btn btn-primary btn-block" type="submit" :disabled="saving">
         {{ saving ? 'Зберігаю…' : 'Зберегти' }}
@@ -128,6 +153,8 @@ async function save() {
 </template>
 
 <style scoped>
+.bonus-rule { border: 1px solid var(--glass-border); border-radius: 12px; padding: 12px; margin: 12px 0; min-width: 0; }
+.bonus-type { display: inline-flex; gap: 6px; margin: 12px 12px 12px 0; }
 .settings-page {
   display: flex;
   flex-direction: column;

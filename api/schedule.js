@@ -1,4 +1,5 @@
 import { getDb, ensureSchema } from './_lib/db.js';
+import { validBonusRules } from '../src/lib/earnings.js';
 import { requireAuth } from './_lib/auth.js';
 
 export default async function handler(req, res) {
@@ -31,8 +32,12 @@ export default async function handler(req, res) {
         tradein_rate,
         nova_poshta_rate,
         regular_rate,
-        hourly_rate
+        hourly_rate, wholesale_rate, bonus_rules
       } = req.body || {};
+      if (bonus_rules !== undefined && !validBonusRules(bonus_rules)) return res.status(400).json({ error: 'Перевір поріг, суму та типи заявок бонусу' });
+      for (const value of [tradein_rate, nova_poshta_rate, regular_rate, hourly_rate, wholesale_rate]) {
+        if (value !== undefined && (typeof value !== 'number' || !Number.isFinite(value) || value < 0)) return res.status(400).json({ error: 'Некоректна ставка' });
+      }
       let restWeekdays = null;
       if (rest_weekdays !== undefined) {
         if (!Array.isArray(rest_weekdays) || rest_weekdays.some((d) => !Number.isInteger(d) || d < 0 || d > 6)) {
@@ -47,7 +52,9 @@ export default async function handler(req, res) {
                      tradein_rate = COALESCE(?, tradein_rate),
                      nova_poshta_rate = COALESCE(?, nova_poshta_rate),
                      regular_rate = COALESCE(?, regular_rate),
-                     hourly_rate = COALESCE(?, hourly_rate)
+                     hourly_rate = COALESCE(?, hourly_rate),
+                     wholesale_rate = COALESCE(?, wholesale_rate),
+                     bonus_rules = COALESCE(?, bonus_rules)
               WHERE id = 1 RETURNING *`,
         args: [
           restWeekdays,
@@ -56,7 +63,9 @@ export default async function handler(req, res) {
           tradein_rate ?? null,
           nova_poshta_rate ?? null,
           regular_rate ?? null,
-          hourly_rate ?? null
+          hourly_rate ?? null,
+          wholesale_rate ?? null,
+          bonus_rules === undefined ? null : JSON.stringify(bonus_rules)
         ]
       });
       return res.status(200).json({ settings: result.rows[0] });

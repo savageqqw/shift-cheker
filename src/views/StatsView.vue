@@ -52,7 +52,7 @@ const round2 = (n) => Math.round((Number(n) || 0) * 100) / 100;
 const money = (n) => Math.round(Number(n) || 0).toLocaleString('uk-UA');
 const avgHours = computed(() => (stats.value ? round2(stats.value.avg_hours) : 0));
 const itemsValue = computed(() =>
-  stats.value ? stats.value.tradein_value + stats.value.nova_poshta_value + stats.value.regular_value : 0
+  stats.value ? stats.value.tradein_value + stats.value.nova_poshta_value + stats.value.regular_value + stats.value.wholesale_value : 0
 );
 </script>
 
@@ -77,6 +77,7 @@ const itemsValue = computed(() =>
         <span class="hero-value">{{ money(stats.total_value) }} ₴</span>
         <div class="hero-split">
           <span>години <b>{{ money(stats.hours_value) }} ₴</b></span>
+          <span>бонуси <b>{{ money(stats.bonus_value) }} ₴</b></span>
           <span>товар <b>{{ money(itemsValue) }} ₴</b></span>
         </div>
       </div>
@@ -97,6 +98,7 @@ const itemsValue = computed(() =>
         </div>
       </div>
 
+      <div class="stat card"><span class="stat-label">Оптові заявки</span><span class="stat-value">{{ stats.total_wholesale }} шт</span><span>{{ money(stats.wholesale_value) }} ₴</span></div>
       <p class="panel-title group-title">Товар</p>
       <div class="stat-grid" :class="{ loading }">
         <div class="stat card">

@@ -82,6 +82,9 @@ export async function ensureSchema() {
       await db.execute('ALTER TABLE shifts ADD COLUMN regular_count INTEGER NOT NULL DEFAULT 0');
     }
 
+    if (!shiftsColNames.includes('wholesale_count')) await db.execute('ALTER TABLE shifts ADD COLUMN wholesale_count INTEGER NOT NULL DEFAULT 0');
+    if (!settingsColNames.includes('wholesale_rate')) await db.execute('ALTER TABLE settings ADD COLUMN wholesale_rate REAL NOT NULL DEFAULT 10');
+    if (!settingsColNames.includes('bonus_rules')) await db.execute(`ALTER TABLE settings ADD COLUMN bonus_rules TEXT NOT NULL DEFAULT '[{"name":"500 заявок","threshold":500,"amount":0,"types":["tradein","regular"]}]'`);
     return true;
   })();
   return migrated;

@@ -3,6 +3,7 @@ import { ref, computed, onMounted, watch } from 'vue';
 import { useScheduleStore } from '../stores/schedule.js';
 import { useShiftsStore } from '../stores/shifts.js';
 import { effectiveDayType, dateKey, restDaysLabel, WEEKDAYS } from '../lib/scheduleEngine.js';
+import { summarize } from '../lib/earnings.js';
 import DayModal from '../components/DayModal.vue';
 
 const schedule = useScheduleStore();
@@ -41,6 +42,7 @@ const rates = computed(() => ({
   hourly: schedule.settings?.hourly_rate ?? 95,
   tradein: schedule.settings?.tradein_rate ?? 20,
   novaPoshta: schedule.settings?.nova_poshta_rate ?? 50,
+  wholesale: schedule.settings?.wholesale_rate ?? 10,
   regular: schedule.settings?.regular_rate ?? 10
 }));
 
@@ -58,12 +60,12 @@ function cellInfo(date) {
   let payValue = 0;
   if (shift) {
     const r = rates.value;
-    itemsCount = (shift.tradein_count || 0) + (shift.nova_poshta_count || 0) + (shift.regular_count || 0);
+    itemsCount = (shift.tradein_count || 0) + (shift.nova_poshta_count || 0) + (shift.regular_count || 0) + (shift.wholesale_count || 0);
     payValue = round2(
       (shift.total_hours || 0) * r.hourly +
         (shift.tradein_count || 0) * r.tradein +
         (shift.nova_poshta_count || 0) * r.novaPoshta +
-        (shift.regular_count || 0) * r.regular
+        (shift.regular_count || 0) * r.regular + (shift.wholesale_count || 0) * r.wholesale
     );
   }
   return {
@@ -105,6 +107,7 @@ const weekTotals = computed(() =>
       hours: 0,
       tradeinCount: 0,
       novaPoshtaCount: 0,
+      wholesaleCount: 0,
       regularCount: 0,
       hasAnyShift: false
     };
@@ -115,12 +118,14 @@ const weekTotals = computed(() =>
       t.hours += s.total_hours || 0;
       t.tradeinCount += s.tradein_count || 0;
       t.novaPoshtaCount += s.nova_poshta_count || 0;
+      t.wholesaleCount += s.wholesale_count || 0;
       t.regularCount += s.regular_count || 0;
     });
     const days = row.filter(Boolean);
     const hoursValue = t.hours * r.hourly;
     const tradeinValue = t.tradeinCount * r.tradein;
     const novaPoshtaValue = t.novaPoshtaCount * r.novaPoshta;
+    const wholesaleValue = t.wholesaleCount * r.wholesale;
     const regularValue = t.regularCount * r.regular;
     return {
       ...t,
@@ -129,9 +134,10 @@ const weekTotals = computed(() =>
       tradeinValue: round2(tradeinValue),
       novaPoshtaValue: round2(novaPoshtaValue),
       regularValue: round2(regularValue),
-      itemsCount: t.tradeinCount + t.novaPoshtaCount + t.regularCount,
-      itemsValue: round2(tradeinValue + novaPoshtaValue + regularValue),
-      value: round2(hoursValue + tradeinValue + novaPoshtaValue + regularValue),
+      wholesaleValue: round2(wholesaleValue),
+      itemsCount: t.tradeinCount + t.novaPoshtaCount + t.regularCount + t.wholesaleCount,
+      itemsValue: round2(tradeinValue + novaPoshtaValue + regularValue + wholesaleValue),
+      value: round2(hoursValue + tradeinValue + novaPoshtaValue + regularValue + wholesaleValue),
       range: days.length ? (days.length === 1 ? `${days[0].day}` : `${days[0].day}–${days[days.length - 1].day}`) : ''
     };
   })
@@ -139,9 +145,13 @@ const weekTotals = computed(() =>
 
 const monthTotals = computed(() => {
   const keys = ['hours', 'hoursValue', 'tradeinCount', 'tradeinValue', 'novaPoshtaCount', 'novaPoshtaValue',
-    'regularCount', 'regularValue', 'itemsCount', 'itemsValue', 'value'];
+    'wholesaleCount', 'wholesaleValue', 'regularCount', 'regularValue', 'itemsCount', 'itemsValue', 'value'];
   const acc = Object.fromEntries(keys.map((k) => [k, 0]));
   weekTotals.value.forEach((w) => keys.forEach((k) => (acc[k] = round2(acc[k] + w[k]))));
+  const summary = summarize(Object.values(shifts.byDate).filter(s => s.date >= rangeBounds.value.from && s.date <= rangeBounds.value.to), schedule.settings || {});
+  acc.value = summary.total_value;
+  acc.bonusValue = summary.bonus_value;
+  acc.bonuses = summary.bonuses;
   return acc;
 });
 
@@ -298,6 +308,8 @@ const money = (n) => Math.round(n).toLocaleString('uk-UA');
             <span>Заявки</span>
             <span>{{ monthTotals.regularCount }}шт <span class="stats-money">{{ money(monthTotals.regularValue) }}₴</span></span>
           </div>
+          <div class="stats-line"><span>Оптові</span><span>{{ monthTotals.wholesaleCount }}шт · {{ money(monthTotals.wholesaleValue) }}₴</span></div>
+          <div class="stats-line" v-for="(b, i) in monthTotals.bonuses" :key="i"><span>{{ b.name }}</span><span>{{ b.count }}/{{ b.threshold }} · {{ b.earned ? money(b.amount) + '₴' : 'ще ' + (b.threshold - b.count) }}</span></div>
           <div class="stats-line stats-grand-total">
             <span>Всього</span>
             <span>{{ money(monthTotals.value) }}₴</span>
@@ -306,6 +318,7 @@ const money = (n) => Math.round(n).toLocaleString('uk-UA');
           <details class="weeks-details">
             <summary>По тижнях</summary>
             <div class="stats-week" v-for="(w, i) in weekTotals" :key="i">
+              <div class="stats-line"><span>Оптові</span><span>{{ w.wholesaleCount }}шт · {{ money(w.wholesaleValue) }}₴</span></div>
               <div class="stats-week-header">
                 <span>Тиждень {{ w.range }}</span>
                 <span class="stats-week-total">{{ money(w.value) }}₴</span>
