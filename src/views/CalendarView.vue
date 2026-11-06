@@ -8,6 +8,7 @@ import DayModal from '../components/DayModal.vue';
 
 const schedule = useScheduleStore();
 const shifts = useShiftsStore();
+const loadError = ref('');
 
 const today = new Date();
 const todayKey = dateKey(today);
@@ -28,9 +29,12 @@ const rangeBounds = computed(() => {
 });
 
 async function loadMonth() {
-  if (!schedule.loaded) await schedule.load();
-  const { from, to } = rangeBounds.value;
-  await shifts.loadRange(from, to);
+  loadError.value = '';
+  try {
+    if (!schedule.loaded) await schedule.load();
+    const { from, to } = rangeBounds.value;
+    await shifts.loadRange(from, to);
+  } catch (e) { loadError.value = e.message || 'Не вдалося завантажити графік'; }
 }
 
 const monthlyGoal = computed(() => schedule.settings?.monthly_hours_goal ?? 200);
@@ -214,7 +218,11 @@ const money = (n) => Math.round(n).toLocaleString('uk-UA');
       </button>
     </div>
 
-    <div v-if="!schedule.settings" class="empty-hint card">Завантаження графіка…</div>
+    <div v-if="loadError" class="empty-hint card" role="alert">
+      <p>{{ loadError }}</p>
+      <button class="btn btn-primary" @click="loadMonth">Спробувати знову</button>
+    </div>
+    <div v-else-if="!schedule.settings" class="empty-hint card">Завантаження графіка…</div>
 
     <div v-else class="calendar-layout">
       <div class="calendar-main">

@@ -8,7 +8,7 @@ const auth = useAuthStore();
 const schedule = useScheduleStore();
 
 onMounted(() => {
-  if (!schedule.loaded) schedule.load();
+  auth.loadUser().catch(() => {});
 });
 
 const todayKey = dateKey(new Date());
@@ -36,6 +36,7 @@ function logout() {
   <div class="shell">
     <header class="shell-header">
       <div class="brand">Shiftly</div>
+      <span v-if="auth.user" class="account-name" :title="auth.user.username">{{ auth.user.display_name }}</span>
 
       <nav class="shell-nav">
         <router-link v-for="t in tabs" :key="t.to" :to="t.to" exact-active-class="active">{{ t.label }}</router-link>
@@ -65,6 +66,7 @@ function logout() {
 </template>
 
 <style scoped>
+.account-name { font-size: 12px; color: var(--text-2); max-width: 110px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .shell {
   min-height: 100vh;
   min-height: 100dvh;

@@ -28,6 +28,11 @@ async function request(path, { method = 'GET', body, params } = {}) {
   }
 
   if (!res.ok) {
+    if (res.status === 401 && path !== '/api/auth') {
+      localStorage.removeItem('shiftly_token');
+      localStorage.removeItem('shiftly_user');
+      window.location.replace('/login');
+    }
     const err = new Error((data && data.error) || 'Помилка запиту');
     err.status = res.status;
     throw err;
@@ -36,7 +41,9 @@ async function request(path, { method = 'GET', body, params } = {}) {
 }
 
 export const api = {
-  login: (password) => request('/api/auth', { method: 'POST', body: { password } }),
+  login: (password, username = 'owner') => request('/api/auth', { method: 'POST', body: { username, password } }),
+  getCurrentUser: () => request('/api/users'),
+  createUser: (payload) => request('/api/users', { method: 'POST', body: payload }),
 
   getScheduleState: () => request('/api/schedule', { params: { action: 'state' } }),
   updateSettings: (payload) =>

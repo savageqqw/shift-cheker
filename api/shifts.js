@@ -1,4 +1,5 @@
-import { getDb, ensureSchema } from './_lib/db.js';
+import { getDb } from './_lib/db.js';
+import { ensureAccounts } from './_lib/accounts.js';
 import { summarize } from '../src/lib/earnings.js';
 import { requireAuth } from './_lib/auth.js';
 
@@ -12,17 +13,18 @@ function computeHours(start, end) {
 }
 
 export default async function handler(req, res) {
-  if (!requireAuth(req, res)) return;
-  await ensureSchema();
+  const userId = requireAuth(req, res);
+  if (!userId) return;
   const db = getDb();
   const action = req.query.action;
 
   try {
+    await ensureAccounts();
     if (req.method === 'GET' && action === 'list') {
       const { from, to } = req.query;
       const result = await db.execute({
-        sql: `SELECT * FROM shifts WHERE date >= ? AND date <= ? ORDER BY date`,
-        args: [from || '0000-01-01', to || '9999-12-31']
+        sql: `SELECT * FROM account_shifts WHERE user_id = ? AND date >= ? AND date <= ? ORDER BY date`,
+        args: [userId, from || '0000-01-01', to || '9999-12-31']
       });
       return res.status(200).json({ shifts: result.rows });
     }
@@ -30,8 +32,8 @@ export default async function handler(req, res) {
     if (req.method === 'GET' && action === 'stats') {
       const { from, to } = req.query;
       const [rows, settings] = await Promise.all([
-        db.execute({ sql: 'SELECT * FROM shifts WHERE date >= ? AND date <= ? ORDER BY date', args: [from || '0000-01-01', to || '9999-12-31'] }),
-        db.execute('SELECT * FROM settings WHERE id = 1')
+        db.execute({ sql: 'SELECT * FROM account_shifts WHERE user_id = ? AND date >= ? AND date <= ? ORDER BY date', args: [userId, from || '0000-01-01', to || '9999-12-31'] }),
+        db.execute({ sql: 'SELECT * FROM account_settings WHERE user_id = ?', args: [userId] })
       ]);
       return res.status(200).json({ stats: summarize(rows.rows, settings.rows[0] || {}) });
     }
@@ -44,9 +46,9 @@ export default async function handler(req, res) {
       }
       const total_hours = computeHours(start_time, end_time);
       const result = await db.execute({
-        sql: `INSERT INTO shifts (date, start_time, end_time, total_hours, tradein_count, nova_poshta_count, regular_count, wholesale_count, note, updated_at)
-              VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))
-              ON CONFLICT(date) DO UPDATE SET
+        sql: `INSERT INTO account_shifts (user_id, date, start_time, end_time, total_hours, tradein_count, nova_poshta_count, regular_count, wholesale_count, note, updated_at)
+              VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))
+              ON CONFLICT(user_id, date) DO UPDATE SET
                 start_time = excluded.start_time,
                 end_time = excluded.end_time,
                 total_hours = excluded.total_hours,
@@ -58,6 +60,7 @@ export default async function handler(req, res) {
                 updated_at = datetime('now')
               RETURNING *`,
         args: [
+          userId,
           date,
           start_time || null,
           end_time || null,
@@ -75,7 +78,7 @@ export default async function handler(req, res) {
     if (req.method === 'POST' && action === 'delete') {
       const { date } = req.body || {};
       if (!date) return res.status(400).json({ error: 'Дата обов’язкова' });
-      await db.execute({ sql: 'DELETE FROM shifts WHERE date = ?', args: [date] });
+      await db.execute({ sql: 'DELETE FROM account_shifts WHERE user_id = ? AND date = ?', args: [userId, date] });
       return res.status(200).json({ ok: true });
     }
 

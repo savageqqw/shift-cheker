@@ -1,18 +1,20 @@
-import { getDb, ensureSchema } from './_lib/db.js';
+import { getDb } from './_lib/db.js';
+import { ensureAccounts } from './_lib/accounts.js';
 import { validBonusRules } from '../src/lib/earnings.js';
 import { requireAuth } from './_lib/auth.js';
 
 export default async function handler(req, res) {
-  if (!requireAuth(req, res)) return;
-  await ensureSchema();
+  const userId = requireAuth(req, res);
+  if (!userId) return;
   const db = getDb();
   const action = req.query.action;
 
   try {
+    await ensureAccounts();
     if (req.method === 'GET' && action === 'state') {
       const [settingsRes, overridesRes] = await Promise.all([
-        db.execute('SELECT * FROM settings WHERE id = 1'),
-        db.execute('SELECT date, is_working, note FROM overrides ORDER BY date')
+        db.execute({ sql: 'SELECT * FROM account_settings WHERE user_id = ?', args: [userId] }),
+        db.execute({ sql: 'SELECT date, is_working, note FROM account_overrides WHERE user_id = ? ORDER BY date', args: [userId] })
       ]);
       return res.status(200).json({
         settings: settingsRes.rows[0] || null,
@@ -46,7 +48,7 @@ export default async function handler(req, res) {
         restWeekdays = [...new Set(rest_weekdays)].sort().join(',');
       }
       const result = await db.execute({
-        sql: `UPDATE settings SET rest_weekdays = COALESCE(?, rest_weekdays),
+        sql: `UPDATE account_settings SET rest_weekdays = COALESCE(?, rest_weekdays),
                      timezone = COALESCE(?, timezone),
                      monthly_hours_goal = COALESCE(?, monthly_hours_goal),
                      tradein_rate = COALESCE(?, tradein_rate),
@@ -55,7 +57,7 @@ export default async function handler(req, res) {
                      hourly_rate = COALESCE(?, hourly_rate),
                      wholesale_rate = COALESCE(?, wholesale_rate),
                      bonus_rules = COALESCE(?, bonus_rules)
-              WHERE id = 1 RETURNING *`,
+              WHERE user_id = ? RETURNING *`,
         args: [
           restWeekdays,
           timezone || null,
@@ -65,7 +67,8 @@ export default async function handler(req, res) {
           regular_rate ?? null,
           hourly_rate ?? null,
           wholesale_rate ?? null,
-          bonus_rules === undefined ? null : JSON.stringify(bonus_rules)
+          bonus_rules === undefined ? null : JSON.stringify(bonus_rules),
+          userId
         ]
       });
       return res.status(200).json({ settings: result.rows[0] });
@@ -77,10 +80,10 @@ export default async function handler(req, res) {
         return res.status(400).json({ error: 'Некоректні дані заміни' });
       }
       const result = await db.execute({
-        sql: `INSERT INTO overrides (date, is_working, note) VALUES (?, ?, ?)
-              ON CONFLICT(date) DO UPDATE SET is_working = excluded.is_working, note = excluded.note
+        sql: `INSERT INTO account_overrides (user_id, date, is_working, note) VALUES (?, ?, ?, ?)
+              ON CONFLICT(user_id, date) DO UPDATE SET is_working = excluded.is_working, note = excluded.note
               RETURNING date, is_working, note`,
-        args: [date, is_working ? 1 : 0, note || null]
+        args: [userId, date, is_working ? 1 : 0, note || null]
       });
       const row = result.rows[0];
       return res.status(200).json({ override: { date: row.date, is_working: !!row.is_working, note: row.note || '' } });
@@ -89,7 +92,7 @@ export default async function handler(req, res) {
     if (req.method === 'POST' && action === 'delete-override') {
       const { date } = req.body || {};
       if (!date) return res.status(400).json({ error: 'Дата обов’язкова' });
-      await db.execute({ sql: 'DELETE FROM overrides WHERE date = ?', args: [date] });
+      await db.execute({ sql: 'DELETE FROM account_overrides WHERE user_id = ? AND date = ?', args: [userId, date] });
       return res.status(200).json({ ok: true });
     }
 

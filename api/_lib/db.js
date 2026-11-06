@@ -86,6 +86,9 @@ export async function ensureSchema() {
     if (!settingsColNames.includes('wholesale_rate')) await db.execute('ALTER TABLE settings ADD COLUMN wholesale_rate REAL NOT NULL DEFAULT 10');
     if (!settingsColNames.includes('bonus_rules')) await db.execute(`ALTER TABLE settings ADD COLUMN bonus_rules TEXT NOT NULL DEFAULT '[{"name":"500 заявок","threshold":500,"amount":0,"types":["tradein","regular"]}]'`);
     return true;
-  })();
+  })().catch((error) => {
+    migrated = null;
+    throw error;
+  });
   return migrated;
 }

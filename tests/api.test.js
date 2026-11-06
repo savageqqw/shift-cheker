@@ -3,9 +3,10 @@ import assert from 'node:assert/strict';
 import { mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import { pathToFileURL } from 'node:url';
 test('migrate old schema, persist settings/counts, reload and aggregate via API', async () => {
   const dir = await mkdtemp(join(tmpdir(), 'shiftly-test-'));
-  process.env.TURSO_DATABASE_URL = 'file:' + join(dir, 'test.db').replaceAll('\\', '/');
+  process.env.TURSO_DATABASE_URL = pathToFileURL(join(dir, 'test.db')).href;
   process.env.JWT_SECRET = 'local-test-only';
   const { getDb, ensureSchema } = await import('../api/_lib/db.js');
   const db = getDb();

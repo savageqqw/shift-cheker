@@ -1,22 +1,25 @@
 <script setup>
 import { ref } from 'vue';
-import { useRouter, useRoute } from 'vue-router';
+import { useRoute } from 'vue-router';
 import { useAuthStore } from '../stores/auth.js';
 
 const password = ref('');
+const username = ref('owner');
 const error = ref('');
 const loading = ref(false);
 
 const auth = useAuthStore();
-const router = useRouter();
 const route = useRoute();
 
 async function submit() {
   error.value = '';
   loading.value = true;
   try {
-    await auth.login(password.value);
-    router.replace(route.query.redirect || '/');
+    await auth.login(password.value, username.value);
+    // Reset all account-specific stores when switching between users.
+    const redirect = typeof route.query.redirect === 'string' && route.query.redirect.startsWith('/') && !route.query.redirect.startsWith('//')
+      ? route.query.redirect : '/';
+    window.location.replace(redirect);
   } catch (e) {
     error.value = e.message || 'Не вдалося увійти';
   } finally {
@@ -32,6 +35,12 @@ async function submit() {
       <div>
         <h1>Shiftly</h1>
         <p class="login-sub">Графік, години й заробіток</p>
+      </div>
+
+      <div class="field">
+        <label for="username">Логін</label>
+        <input id="username" class="input" autocomplete="username" v-model="username" required maxlength="32" autocapitalize="none" spellcheck="false" />
+        <small class="login-sub">Для власника — owner. Для друга — створений тобою логін.</small>
       </div>
 
       <div class="field">

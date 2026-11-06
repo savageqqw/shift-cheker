@@ -2,6 +2,7 @@
 import { ref, watch, onMounted } from 'vue';
 import { useScheduleStore } from '../stores/schedule.js';
 import { WEEKDAYS, parseRestWeekdays } from '../lib/scheduleEngine.js';
+import AccountPanel from '../components/AccountPanel.vue';
 
 import { parseBonusRules, REQUEST_TYPES } from '../lib/earnings.js';
 const schedule = useScheduleStore();
@@ -150,6 +151,7 @@ async function save() {
       </button>
     </div>
   </form>
+  <AccountPanel />
 </template>
 
 <style scoped>
